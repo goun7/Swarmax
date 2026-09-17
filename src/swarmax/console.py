@@ -60,6 +60,22 @@ def _favicon_bytes() -> bytes:
         except (FileNotFoundError, ModuleNotFoundError):
             _FAVICON = b""  # absent asset -> empty 200 body, never a traceback
     return _FAVICON
+
+
+def _hero_bytes() -> bytes:
+    """Login-page hero strip (swarmax/assets/hero-400.png)."""
+    global _HERO
+    if _HERO is None:
+        from importlib import resources
+        try:
+            _HERO = resources.files("swarmax").joinpath(
+                "assets/hero-400.png").read_bytes()
+        except (FileNotFoundError, ModuleNotFoundError):
+            _HERO = b""
+    return _HERO
+
+
+_HERO: bytes | None = None
 from .evidence import append_evidence
 from .metrics.apd import FleetApd
 from .pipeline import Pipeline
@@ -432,7 +448,9 @@ PAGE = """<!doctype html>
 LOGIN_PAGE = """<!doctype html>
 <html><head><meta charset="utf-8"><title>Swarmax — sign in</title>
 <link rel="icon" type="image/png" href="/favicon.png">{style}</head>
-<body><h1><img src="/favicon.png" alt="" width="28" height="28" style="vertical-align:-6px;border-radius:6px"> Swarmax Fleet Console</h1>
+<body><img src="/hero.png" alt="Swarmax — evidence-based operations for AI agent fleets"
+ style="max-width:560px;width:100%;border-radius:10px;margin:6px 0 2px" role="img">
+<h1><img src="/favicon.png" alt="" width="28" height="28" style="vertical-align:-6px;border-radius:6px"> Swarmax Fleet Console</h1>
 <p class="muted">§8 operations model — sign in to triage the fleet.</p>
 <form method="post" action="/login">
 <p><input name="username" placeholder="username" autofocus></p>
@@ -890,6 +908,10 @@ metric formulas: SWARMAX.md §3.2</p>
                     return
                 if path == "/favicon.png":
                     self._send(200, _favicon_bytes(), "image/png",
+                               {"Cache-Control": "public, max-age=86400"})
+                    return
+                if path == "/hero.png":
+                    self._send(200, _hero_bytes(), "image/png",
                                {"Cache-Control": "public, max-age=86400"})
                     return
                 if path == "/login":

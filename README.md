@@ -9,7 +9,9 @@
 Sealed audit trails, SLA-alarmed triage and AI-Act-ready privacy —
 in one zero-dependency Python service.
 
-`assets/banner.png` · logo set in [`assets/`](assets/)
+`assets/banner-v2.png` · logo set in [`assets/`](assets/)
+
+<img src="assets/banner-v2.png" width="100%" alt="Swarmax — evidence-based operations for AI agent fleets">
 
 </div>
 

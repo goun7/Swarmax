@@ -2,6 +2,21 @@
 
 All notable changes to Swarmax. Dates are UTC.
 
+## v4.3.5 — 2026-09-17
+
+### Changed
+
+- **README embeds the v2 banner** (canonical mark composition).
+- **Login hero strip**: `/hero.png` served from a wheel-packaged asset;
+  the sign-in page opens with the brand banner (accessible `role=img`).
+
+### Authorship
+
+- Repository history rewritten with `git filter-branch` so all commits and
+  tags are authored with the GitHub noreply identity
+  (`goun7@users.noreply.github.com`); the personal e-mail no longer appears
+  anywhere in the published history.
+
 ## v4.3.4 — 2026-09-17
 
 ### Changed

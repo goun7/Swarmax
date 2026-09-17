@@ -14,6 +14,18 @@ def test_favicon_asset_ships_in_package():
     assert len(data) > 200
 
 
+def test_hero_asset_ships_in_package():
+    data = console._hero_bytes()
+    assert data.startswith(b"\x89PNG\r\n\x1a\n"), "PNG magic missing"
+    assert len(data) > 5000
+
+
+def test_login_page_carries_hero():
+    page = console.LOGIN_PAGE.format(style="", error="", sso_link="")
+    assert '/hero.png' in page
+    assert 'role="img"' in page
+
+
 def test_pages_reference_favicon():
     html = console.PAGE
     assert '/favicon.png' in html

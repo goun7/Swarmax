@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "swarmax"
-version = "4.3.4"
+version = "4.3.5"
 description = "Evidence-based operations for AI agent fleets: sealed audit trails, SLA-alarmed triage and AI-Act-ready privacy."
 readme = "README.md"
 requires-python = ">=3.10"
