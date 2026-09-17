@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="t d">
+  <title id="t">Swarmax</title>
+  <desc id="d">Seven-pointed protractor star (the sealed evidence chain) over a seven-arc stroboscope ring (the fleet).</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#122A5C"/><stop offset="100%" stop-color="#081430"/>
+    </radialGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#63F5DD"/><stop offset="100%" stop-color="#2BB3A3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="228" fill="url(#bg)"/>
+  <g fill="none" stroke="url(#ink)" stroke-linecap="round">
+    <g stroke-width="9" opacity="0.20">
+      <circle cx="512" cy="512" r="390"/><circle cx="512" cy="512" r="340"/>
+    </g>
+    <g stroke-width="15" opacity="0.82">
+      <path d="M 512 216 A 296.0 296.0 0 0 1 773.35 650.96"/>
+      <path d="M 734.04 334.93 A 284.0 284.0 0 0 1 564.1 791.18"/>
+      <path d="M 777.18 572.53 A 272.0 272.0 0 0 1 334.06 717.73"/>
+      <path d="M 624.81 746.25 A 260.0 260.0 0 0 1 252.21 501.63"/>
+      <path d="M 404.4 735.44 A 248.0 248.0 0 0 1 365.23 312.09"/>
+      <path d="M 281.92 564.51 A 236.0 236.0 0 0 1 573.65 284.19"/>
+      <path d="M 336.87 372.34 A 224.0 224.0 0 0 1 717.53 422.94"/>
+    </g>
+    <path fill="url(#ink)" stroke="none" d="M 512 176 L 574.05 383.16 L 774.7 302.51 L 651.41 480.18 L 839.58 586.77 L 623.8 601.16 L 657.78 814.73 L 512 655 L 366.22 814.73 L 400.2 601.16 L 184.42 586.77 L 372.59 480.18 L 249.3 302.51 L 449.95 383.16 Z"/>
+    <circle cx="512" cy="512" r="34" fill="#081430" stroke="url(#ink)" stroke-width="14"/>
+  </g>
+</svg>

@@ -1,4 +1,4 @@
-.PHONY: test perf demo schema seed seal drill otlp console ch-mirror cold-archive cold-verify dogfood-demo pdf scale-gate-ch trust-drill serve clean
+.PHONY: js-test test perf demo schema seed seal drill otlp console ch-mirror cold-archive cold-verify dogfood-demo pdf scale-gate-ch trust-drill serve clean
 
 test:
 	python -m pytest tests -v
@@ -85,3 +85,9 @@ r = verify_archive(s); print(r); assert r['ok']"
 
 dogfood-demo:
 	python scripts/dogfood/run_week1.py --reset
+
+js-test:
+	cd examples/js && node --test
+
+relay:
+	SWARMAX_RELAY_SECRET=$${SWARMAX_RELAY_SECRET:?set SWARMAX_RELAY_SECRET} python -m swarmax.bridges.otel_relay

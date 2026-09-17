@@ -4,15 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "swarmax"
-version = "4.3.2"
-description = "Swarmax — agentic fleet operations layer: SLA-alarmed triage, sealed evidence, AI-Act-ready privacy (paper SWARMAX.md v4.3.2)"
+version = "4.3.3"
+description = "Evidence-based operations for AI agent fleets: sealed audit trails, SLA-alarmed triage and AI-Act-ready privacy."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Swarmax Maintainers" }]
 keywords = [
     "ai-agents", "observability", "evidence", "audit", "opentelemetry",
-    "llm-ops", "agent-fleet", "compliance", "ai-act", "gdpr",
+    "llm-ops", "agent-fleet", "compliance", "ai-act", "gdpr", "swarm",
+    "multi-agent", "ai-audit", "agent-monitoring",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -26,7 +27,9 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: System :: Monitoring",
+    "Topic :: System :: Logging",
     "Topic :: Security",
+    "Topic :: Office/Business :: Financial :: Auditing",
 ]
 dependencies = []  # stdlib-only by design (§7 F0: no external runtime deps)
 
@@ -36,6 +39,7 @@ dev = ["pytest>=8.0"]
 [project.scripts]
 swarmax-console = "swarmax.console:main"
 swarmax-ingest = "swarmax.otlp:main"
+swarmax-otel-relay = "swarmax.bridges.otel_relay:main"
 
 # project.urls is intentionally omitted until the public repo + docs are live;
 # placeholder URLs on PyPI look worse than no URLs.

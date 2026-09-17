@@ -2,6 +2,27 @@
 
 All notable changes to Swarmax. Dates are UTC.
 
+## v4.3.3 — 2026-09-17
+
+### Added
+
+- **Five-minute integration facade**: `swarmax.SwarmaxClient` — `task()`
+  one-liner, `span()` timed blocks with error capture, and `guard()`
+  loop-protected tool calls (client-side §3.2-3 breaker raising
+  `LoopDetected`). All paths emit signed `gen_ai.*` spans over the
+  production OTLP path; `examples/quickstart.py` is the copy-paste start.
+- **Langfuse pull bridge** (`swarmax.bridges.langfuse_pull`): maps
+  GENERATION observations from any Langfuse deployment to signed spans —
+  deterministic span ids make re-syncs idempotent; zero dependencies.
+- **Node/Bun mini SDK** (`examples/js/swarmax.js`): zero-dependency JS SDK
+  mirroring the Python facade (task/span/guard, X-SWX-* HMAC signing);
+  tested with `node --test examples/js/` (5/5).
+- **OTel signing relay** (`swarmax-otel-relay`): accepts unsigned OTLP/HTTP
+  from any OpenTelemetry-exporting framework and forwards it as signed
+  batches to Swarmax ingest — fail-closed 503 so nothing is dropped silently.
+- **Brand set**: `assets/` logo + banner (single-geometry generator
+  `scripts/gen_brand.py`, project's own PNG rasterizer).
+
 ## v4.3.2 — 2026-09-17
 
 Packaging + UI export + production scale evidence + monetization decision

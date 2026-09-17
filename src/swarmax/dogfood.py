@@ -28,7 +28,7 @@ from urllib.parse import urlparse
 from .evidence import verify_chain
 from .sealing import verify_seals
 
-__all__ = ["FleetSdk", "measure_mt6", "measure_mt7", "mt6_text", "mt7_text"]
+__all__ = ["FleetSdk", "SwarmaxClient", "LoopDetected", "measure_mt6", "measure_mt7", "mt6_text", "mt7_text"]
 
 
 def _now_ns() -> int:
@@ -236,3 +236,147 @@ def mt7_text(m: dict) -> str:
     return (f"- MT-7 evidence integrity: chain_ok={m['chain_ok']}"
             f" ({m['entries']} entries), seals {m['seals_valid']}/{m['seals']}"
             f" -> {verdict}")
+
+
+# ------------------------------------------------------- integration facade
+class LoopDetected(RuntimeError):
+    """Raised by ``SwarmaxClient.guard`` before a call that would be the
+    third consecutive identical (tool, arguments) invocation — the client-side
+    face of the §3.2-3 runaway-loop breaker."""
+
+
+class _SpanCtx:
+    """Context manager returned by ``SwarmaxClient.span``."""
+
+    def __init__(self, client: "SwarmaxClient", task_id: str | None,
+                 *, model: str | None, cost_usd: float | None) -> None:
+        self._client, self._task_id = client, task_id
+        self._model, self._cost_usd = model, cost_usd
+        self.recorded_task_id: str | None = None
+
+    def __enter__(self) -> "_SpanCtx":
+        self._t0 = time.perf_counter()
+        return self
+
+    def __exit__(self, et, ev, tb) -> bool:
+        ms = int((time.perf_counter() - self._t0) * 1000)
+        self.recorded_task_id = self._client.task(
+            self._task_id, model=self._model, cost_usd=self._cost_usd,
+            latency_ms=ms, error=(type(ev).__name__ if et else None))
+        return False  # never swallow
+
+
+class SwarmaxClient:
+    """Five-minute integration facade — the one object most applications need.
+
+        from swarmax import SwarmaxClient
+        client = SwarmaxClient("http://127.0.0.1:4318", "demo", b"secret")
+        client.set_agent("support-bot")
+
+        client.task("task-42")                      # 1) one line per task
+        with client.span() as s:                    # 2) time any block
+            run_my_agent_step()
+        result = client.guard("web_search", fn, q)  # 3) loop-protected call
+
+    All three paths emit real ``gen_ai.*``/``swx.*`` OTLP spans over the signed
+    production path (HMAC anti-replay). ``guard`` raises ``LoopDetected``
+    instead of executing a third consecutive identical call and records it as
+    an ``error="loop"`` task — the same class the pipeline's §3.2-3 breaker
+    uses. Cost: pass ``cost_usd`` per call or set a static ``default_cost_usd``.
+    """
+
+    def __init__(self, endpoint: str, key_id: str, secret: bytes, *,
+                 agent_id: str | None = None, model: str = "unknown",
+                 default_cost_usd: float = 0.0, **sdk_kw) -> None:
+        self._sdk = FleetSdk(endpoint, key_id, secret, **sdk_kw)
+        self.agent_id = agent_id or "app"
+        self.model = model
+        self.default_cost_usd = default_cost_usd
+        self._seq = 0
+        self._last_hash: str = ""
+        self._same_calls = 0
+
+    # -- configuration ------------------------------------------------------
+    def set_agent(self, agent_id: str, *, model: str | None = None) -> None:
+        """Set the emitting agent identity (call once after construction)."""
+        self.agent_id = agent_id
+        if model is not None:
+            self.model = model
+
+    # -- 1) explicit task ---------------------------------------------------
+    def task(self, task_id: str | None = None, *, model: str | None = None,
+             cost_usd: float | None = None, tokens_in: int = 0,
+             tokens_out: int = 0, latency_ms: int = 0,
+             error: str | None = None) -> str:
+        """Record one agent task; returns the (possibly generated) task id."""
+        self._seq += 1
+        if task_id is None:
+            task_id = f"{self.agent_id}-{self._seq}"
+        self._sdk.task(self.agent_id, task_id, model=model or self.model,
+                       cost_usd=(self.default_cost_usd if cost_usd is None
+                                 else cost_usd),
+                       tokens_in=tokens_in, tokens_out=tokens_out,
+                       latency_ms=latency_ms, error=error)
+        return task_id
+
+    # -- 2) timed block ------------------------------------------------------
+    def span(self, task_id: str | None = None, *, model: str | None = None,
+             cost_usd: float | None = None) -> _SpanCtx:
+        """``with client.span():`` — measures wall time, records errors."""
+        return _SpanCtx(self, task_id, model=model, cost_usd=cost_usd)
+
+    # -- 3) loop-protected tool call -----------------------------------------
+    def guard(self, tool_name: str, fn, /, *args, **kwargs):
+        """Execute ``fn`` under the n-gram runaway-loop rule (§3.2-3).
+
+        A third consecutive identical (tool_name, args) call raises
+        ``LoopDetected`` without executing; the blocked attempt is recorded as
+        an ``error="loop"`` task. Distinct calls reset the counter.
+        """
+        try:
+            payload = json.dumps([tool_name, args, kwargs], sort_keys=True,
+                                 default=str)
+        except (TypeError, ValueError):
+            payload = repr((tool_name, args, kwargs))
+        h = hashlib.sha256(payload.encode()).hexdigest()
+        if h == self._last_hash and self._same_calls >= 2:
+            self.task(error="loop", latency_ms=0)
+            raise LoopDetected(
+                f"runaway loop: '{tool_name}' called identically "
+                "3+ times in a row (§3.2-3)")
+        t0 = time.perf_counter()
+        try:
+            out = fn(*args, **kwargs)
+        except Exception as exc:
+            self.task(error=type(exc).__name__,
+                      latency_ms=int((time.perf_counter() - t0) * 1000))
+            raise
+        ms = int((time.perf_counter() - t0) * 1000)
+        self.task(latency_ms=ms)
+        if h == self._last_hash:
+            self._same_calls += 1
+        else:
+            self._last_hash, self._same_calls = h, 1
+        return out
+
+    # -- plumbing ------------------------------------------------------------
+    def flush(self) -> int:
+        """Push queued spans over the wire; returns the span count sent."""
+        return self._sdk.flush()
+
+    @property
+    def sent_spans(self) -> int:
+        return self._sdk.sent_spans
+
+    @property
+    def rejected(self) -> int:
+        return self._sdk.rejected
+
+    def __enter__(self) -> "SwarmaxClient":
+        return self
+
+    def __exit__(self, et, ev, tb) -> bool:
+        try:
+            self.flush()
+        finally:
+            return False  # noqa: B012 — never swallow, always flush
