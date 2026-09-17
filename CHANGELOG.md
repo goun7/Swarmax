@@ -2,6 +2,26 @@
 
 All notable changes to Swarmax. Dates are UTC.
 
+## v4.3.4 — 2026-09-17
+
+### Changed
+
+- **Banner recomposed around the canonical mark**: `assets/banner-v2.png`
+  (mark from the transparent logo2 + wordmark/tagline on the original navy
+  system; generator `scripts/gen_banner_v2.py`). Original banner kept as
+  `banner.png`.
+- **Console carries the brand**: header mark + favicon on all pages,
+  `/favicon.png` served from a wheel-packaged asset
+  (`swarmax/assets/favicon-32.png`).
+
+### Release hygiene
+
+- Audit re-run before publish: no secrets/keys/dbs/preview artifacts in
+  git-tracked files or the sdist; internal docs (`docs/`, FLEETMIND,
+  ESKI_KIMLIK) remain untracked; preview HTMLs added to `.gitignore`.
+- Launch text package for non-HN channels added (`docs/LANSMAN_PAKETI.md`,
+  untracked by design).
+
 ## v4.3.3 — 2026-09-17
 
 ### Added

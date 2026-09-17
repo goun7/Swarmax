@@ -45,6 +45,21 @@ from . import auth, attribution, sso
 from .metrics.charts import Canvas
 from .raster import encode_png
 from .db import connect, init_db_with_migrations
+
+_FAVICON: bytes | None = None
+
+
+def _favicon_bytes() -> bytes:
+    """Brand favicon shipped inside the wheel (swarmax/assets/favicon-32.png)."""
+    global _FAVICON
+    if _FAVICON is None:
+        from importlib import resources
+        try:
+            _FAVICON = resources.files("swarmax").joinpath(
+                "assets/favicon-32.png").read_bytes()
+        except (FileNotFoundError, ModuleNotFoundError):
+            _FAVICON = b""  # absent asset -> empty 200 body, never a traceback
+    return _FAVICON
 from .evidence import append_evidence
 from .metrics.apd import FleetApd
 from .pipeline import Pipeline
@@ -383,8 +398,9 @@ def _labeled_canvas(points: list[tuple[str, float | None]], *, color: str,
 
 PAGE = """<!doctype html>
 <html><head><meta charset="utf-8"><title>Swarmax Fleet Console</title>
+<link rel="icon" type="image/png" href="/favicon.png">
 {refresh_meta}{style}</head><body>
-<h1>Swarmax Fleet Console <span class="muted">— {now} UTC{refresh_note}</span>
+<h1><img src="/favicon.png" alt="" width="28" height="28" style="vertical-align:-6px;border-radius:6px"> Swarmax Fleet Console <span class="muted">— {now} UTC{refresh_note}</span>
 <form method="post" action="/logout" style="display:inline">
 <input type="hidden" name="csrf" value="{csrf}"><input type="hidden" name="token" value="{token}"><button class="danger" type="submit">logout ({username})</button></form></h1>
 <div class="cards">{cards}</div>
@@ -414,8 +430,9 @@ PAGE = """<!doctype html>
 
 
 LOGIN_PAGE = """<!doctype html>
-<html><head><meta charset="utf-8"><title>Swarmax — sign in</title>{style}</head>
-<body><h1>Swarmax Fleet Console</h1>
+<html><head><meta charset="utf-8"><title>Swarmax — sign in</title>
+<link rel="icon" type="image/png" href="/favicon.png">{style}</head>
+<body><h1><img src="/favicon.png" alt="" width="28" height="28" style="vertical-align:-6px;border-radius:6px"> Swarmax Fleet Console</h1>
 <p class="muted">§8 operations model — sign in to triage the fleet.</p>
 <form method="post" action="/login">
 <p><input name="username" placeholder="username" autofocus></p>
@@ -793,8 +810,9 @@ class FleetConsole:
             for r in st["recent_tickets"]) or ("<tr><td colspan='4' class='muted'>no tickets</td></tr>")
 
         return f"""<!doctype html>
-<html><head><meta charset="utf-8"><title>Swarmax — {esc(agent_id)}</title>{STYLE}</head><body>
-<h1><a href="/">← fleet</a> · agent {esc(agent_id)}
+<html><head><meta charset="utf-8"><title>Swarmax — {esc(agent_id)}</title>
+<link rel="icon" type="image/png" href="/favicon.png">{STYLE}</head><body>
+<h1><img src="/favicon.png" alt="" width="24" height="24" style="vertical-align:-5px;border-radius:5px"> <a href="/">← fleet</a> · agent {esc(agent_id)}
 <span class="muted">— {now_stamp()} UTC</span></h1>
 <div class="cards">
 <div class="card"><b>{st['events_24h']}</b><span class="muted">events 24h</span></div>
@@ -869,6 +887,10 @@ metric formulas: SWARMAX.md §3.2</p>
                 path = parsed.path
                 if path == "/healthz":
                     self._send(200, b"ok", "text/plain")
+                    return
+                if path == "/favicon.png":
+                    self._send(200, _favicon_bytes(), "image/png",
+                               {"Cache-Control": "public, max-age=86400"})
                     return
                 if path == "/login":
                     sess = self._session()

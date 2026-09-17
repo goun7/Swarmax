@@ -2,6 +2,6 @@
 
 from .dogfood import LoopDetected, SwarmaxClient
 
-__version__ = "4.3.3"
+__version__ = "4.3.4"
 
 __all__ = ["SwarmaxClient", "LoopDetected", "__version__"]

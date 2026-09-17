@@ -24,3 +24,8 @@ VERGI_KANAL_CERCEVESI.md
 Fikirler.md
 preview_console.html
 docs/
+
+# --- preview/check artifacts (local QA only) ---
+docs/_banner_check.html
+docs/preview_release.html
+docs/logo_compare.html
