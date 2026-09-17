@@ -1,0 +1,55 @@
+# Swarmax OTel collector — paper §12.2 (tail-sampled GenAI traces; all gen_ai.*
+# attributes Development-status: swarmax pins the registry, see §3.1/R9).
+# Tested against opentelemetry-collector-contrib 0.11x line.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # §12.2: keep 100% of error traces + slow traces; 5% head sample of the rest
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 50000
+    policies:
+      - name: errors-always
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      - name: slow-traces
+        type: latency
+        latency:
+          threshold_ms: 5000
+      - name: probabilistic-base
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 5
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+
+exporters:
+  otlp/chq:
+    endpoint: clickhouse:4317
+    tls:
+      insecure: true
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [tail_sampling, batch]
+      exporters: [otlp/chq]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/chq]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/chq]

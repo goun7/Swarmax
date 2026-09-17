@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install (stdlib-only project; dev extras for pytest)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Fast test battery (full suite minus the 1M scale gate)
+        run: |
+          python -m pytest tests -p no:warnings -q \
+            --deselect tests/test_hardening_f5.py::test_scale_1m_page_view_queries_under_200ms \
+            --deselect tests/test_hardening_f5.py::test_scale_fleet_groupby_documented_tier_boundary
+
+  scale-gate:
+    # the 1M-event gate runs nightly / on demand: it needs several minutes of
+    # single-tenant CPU and documents the §10.1 tier boundary
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Scale gate (1M events, page-view queries < 200 ms)
+        run: |
+          python -m pytest tests/test_hardening_f5.py -p no:warnings -q -s
+      - name: F0 performance gate (100K p99 ingest < 2 s)
+        run: |
+          python -m pytest tests/test_performance.py -p no:warnings -q
+
+  compliance:
+    # executable auditor walkthrough: erasure → evidence → cold archive → verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Compliance drill (in-memory fresh fleet)
+        run: python scripts/compliance_drill.py
+      - name: Exit drill (chain + seals on a fresh store)
+        run: |
+          python scripts/seed_fleet.py --db ci.db --reset
+          python scripts/exit_drill.py --db ci.db

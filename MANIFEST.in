@@ -1,0 +1,8 @@
+include CHANGELOG.md
+include UPGRADE_GUIDE.md
+include LABELING_TEMPLATES.md
+include AI_ACT_COMPLIANCE.md
+include LICENSE
+include README.md
+recursive-exclude * __pycache__
+recursive-exclude * *.pyc
