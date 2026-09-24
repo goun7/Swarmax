@@ -53,3 +53,12 @@ swarmax = ["schema/*.sql", "schema/migrations/*.sql", "assets/*.png"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# AT-187-BULGU-1: TSA-PKI-uyarısı-sessizce-geçmesin ( fail-closed-zihniyeti;
+# sester-deseni). UserWarning-üretim-kodu-tarafından-bilinçli-çıkıyor — testler-
+# açıkça-yönetmeli ( pytest.warns-ile-yakalamalı-veya-cert-sağlamalı).
+# DeprecationWarning-hariç: datetime.utcnow-stdlib-kullanımdan-kaldırması-
+# ( python-3.14) bizim-bağımlılığımız-değil — kendi-sınıfımızda-izole-ele-alınır.
+filterwarnings = [
+    "error::UserWarning",
+    "ignore::DeprecationWarning",
+]

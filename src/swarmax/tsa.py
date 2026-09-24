@@ -122,7 +122,57 @@ def verify_token_binding(token: bytes, data: bytes, *,
     if nonce is not None:
         if _der_int(nonce)[2:] not in token:  # value bytes incl. sign byte
             return False
+    # AT-187-BULGU-1-düzeltmesi: imprint-araması-YALNIZCA-binding'i-kanıtlar;
+    # token'in-TSA-tarafından-İMZALANDIĞINI-kanıtlamaz ( DER-imza-alanı-açıl-
+    # mıyordu → sahte-token-imprintsiz-üretilebiliyordu). SWARMAX_TSA_PEM-
+    # ayarlandığında-openssl-PKI-doğrulaması-çalışır ( operatör-sözleşmesi);
+    # ayarlanmadığında-binding-TRUE-AMA-uyarı-verilir ( sessiz-geçiş-YOK).
+    _pem = os.environ.get("SWARMAX_TSA_PEM")
+    if _pem:
+        if not _verify_pki(token, data, _pem):
+            return False
+    else:
+        import warnings
+        warnings.warn("tsa: SWARMAX_TSA_PEM-AYARLI-DEĞİL — token-binding-doğrulandı "
+                      "AMA-PKI-imza-zinciri-DOĞRULANMADI ( openssl ts -verify "
+                      "için-cert-geçin) — AT-187", stacklevel=2)
     return True
+
+
+def _verify_pki(token: bytes, data: bytes, ca_pem: str) -> bool:
+    """RFC-3161-DER-token'ini-openssl-ts-verify-ile-doğrular ( gerçek-PKI).
+
+    Operatör-sözleşmesi: TSA-cert'i-diskte-olmalı ( SWARMAX_TSA_PEM). openssl
+    yoksa-veya-doğrulama-başarısızsa-False ( fail-closed; fail-OPEN-YOK —
+    AT-187). Token-geçici-dosyaya-yazılır-ve-silinir ( iz-bırakmaz).
+    """
+    import shutil
+    import subprocess
+    import tempfile
+    import pathlib
+    if shutil.which("openssl") is None:
+        return False   # openssl-yok → fail-closed ( binding-true-olsa-bile)
+    data_path = pathlib.Path(tempfile.mktemp(suffix=".tsq"))
+    token_path = pathlib.Path(tempfile.mktemp(suffix=".tsr"))
+    try:
+        import urllib.request  # noqa: F401  ( mevcut-import-koruma)
+        # DER-data'yı-sorgu-olarak-yaz ( openssl -data)
+        data_path.write_bytes(data)
+        token_path.write_bytes(token)
+        r = subprocess.run(
+            ["openssl", "ts", "-verify", "-in", str(token_path),
+             "-data", str(data_path), "-CAfile", ca_pem],
+            capture_output=True, timeout=30)
+        out = (r.stdout + r.stderr).decode("utf-8", "replace")
+        return r.returncode == 0 and "Verification: OK" in out
+    except Exception:
+        return False   # her-hata → fail-closed
+    finally:
+        for p in (data_path, token_path):
+            try:
+                p.unlink(missing_ok=True)
+            except Exception:
+                pass
 
 
 def tsa_url_from_env() -> str | None:
