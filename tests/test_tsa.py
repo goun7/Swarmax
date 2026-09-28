@@ -34,7 +34,7 @@ def test_request_der_contains_imprint_and_nonce():
     assert bytes.fromhex("060960864801650304020105 00".replace(" ", "")) in der
 
 
-@pytest.mark.filterwarnings("ignore:tsa: SWARMAX_TSA_PEM")
+@pytest.mark.filterwarnings("ignore:tsa:UserWarning")
 def test_binding_verification():
     data = b"root12345678"
     der, nonce = build_ts_request(data)
@@ -74,7 +74,7 @@ def tsa_url():
     srv.shutdown()
 
 
-@pytest.mark.filterwarnings("ignore:tsa: SWARMAX_TSA_PEM")
+@pytest.mark.filterwarnings("ignore:tsa:UserWarning")
 def test_request_timestamp_roundtrip_offline(tsa_url):
     token = request_timestamp(b"hello seal", url=tsa_url)
     assert token.startswith(b"\x30")
@@ -105,7 +105,7 @@ def _fresh_ledger(conn, n=5):
     conn.commit()
 
 
-@pytest.mark.filterwarnings("ignore:tsa: SWARMAX_TSA_PEM")
+@pytest.mark.filterwarnings("ignore:tsa:UserWarning")
 def test_seal_countersign_binds_and_verifies(tsa_url, tmp_path):
     conn = connect(str(tmp_path / "t.db"))
     init_db_with_migrations(conn)
@@ -135,7 +135,7 @@ def test_seal_without_tsa_stays_valid(tsa_url, tmp_path):
     assert v["results"][0]["countersign_ok"] is None
 
 
-@pytest.mark.filterwarnings("ignore:tsa: SWARMAX_TSA_PEM")
+@pytest.mark.filterwarnings("ignore:tsa:UserWarning")
 def test_tampered_token_fails_closed(tsa_url, tmp_path):
     conn = connect(str(tmp_path / "t.db"))
     init_db_with_migrations(conn)

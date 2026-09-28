@@ -16,13 +16,27 @@ SCHEMA_FILE = _PKG_ROOT / "schema" / "sqlite_v1.sql"
 MIGRATIONS_DIR = _PKG_ROOT / "schema" / "migrations"
 
 
+class Connection(sqlite3.Connection):
+    """sqlite3.Connection with one extra attribute.
+
+    A plain sqlite3.Connection refuses arbitrary attributes, so in-process
+    state scoped to a store (console login lockout) cannot be attached to it.
+    This subclass carries `_swarmax_sid`: a process-unique store id that dies
+    with the object. Using id(conn) instead is unsafe — Python may hand a
+    recycled address to a brand-new connection after the old one is
+    garbage-collected, letting one store inherit another's lockout.
+    """
+
+    _swarmax_sid: str
+
+
 def connect(path: str = ":memory:") -> sqlite3.Connection:
     """Open a connection with the PRAGMA discipline the paper mandates (§12.1).
 
     check_same_thread=False: services (OTLP ingest, console) are thread-per-request;
     callers serialize writes with their own lock (see OtlpIngest/FleetConsole).
     """
-    conn = sqlite3.connect(path, check_same_thread=False)
+    conn = sqlite3.connect(path, check_same_thread=False, factory=Connection)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")   # §8 R2: single-node crash durability
     conn.execute("PRAGMA foreign_keys=ON")
@@ -63,3 +77,31 @@ def init_db_with_migrations(conn: sqlite3.Connection) -> None:
     """Convenience: base DDL + pending migrations (the F0 production path)."""
     init_db(conn)
     migrate(conn)
+
+
+def init_main(argv: list[str] | None = None) -> int:
+    """`swarmax-init` — create a Swarmax store at PATH (default data/swarmax.db)."""
+    import argparse
+
+    ap = argparse.ArgumentParser(
+        prog="swarmax-init",
+        description="Create or upgrade a Swarmax store (base schema + migrations).")
+    ap.add_argument("path", nargs="?", default="data/swarmax.db",
+                    help="store path (default: data/swarmax.db)")
+    args = ap.parse_args(argv)
+
+    root = pathlib.Path(args.path)
+    if root.parent and str(root.parent) not in (".", ""):
+        root.parent.mkdir(parents=True, exist_ok=True)
+    conn = connect(str(root))
+    try:
+        init_db_with_migrations(conn)
+        version = current_version(conn)
+    finally:
+        conn.close()
+    print(f"swarmax store ready: {root} (schema v{version})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(init_main())

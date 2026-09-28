@@ -23,7 +23,13 @@ CIFT_HAT_PLANI.md
 VERGI_KANAL_CERCEVESI.md
 Fikirler.md
 preview_console.html
-docs/
+# docs/ is internal strategy by default; only the files below are published.
+# (A blanket docs/ exclusion cannot be re-included, so exclude the tree and
+#  un-include exactly the public pages.)
+docs/**
+!docs/landing.md
+!docs/arastirma/
+!docs/arastirma/**
 
 # --- preview/check artifacts (local QA only) ---
 docs/_banner_check.html

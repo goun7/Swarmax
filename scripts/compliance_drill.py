@@ -51,6 +51,13 @@ def run(conn) -> list[str]:
 
     # 1. register a subject with lawful basis, bind a real event
     store = SubjectKeyStore(conn, master)
+    # the drill registers then erases its own synthetic subject; /forget
+    # crypto-shreds in place and keeps the row, so purge leftovers from an
+    # earlier run first — otherwise the drill is not re-runnable. The real
+    # erasure path never does this; the evidence ledger keeps its history.
+    for _table in ("subject_keys", "data_subjects"):
+        conn.execute(f"DELETE FROM {_table} WHERE subject_id='drill-subject'")
+    conn.commit()
     store.register("drill-subject", "Compliance Drill",
                    {"email": "drill@example.com"}, actor="drill",
                    lawful_basis="consent")

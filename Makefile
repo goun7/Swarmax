@@ -43,8 +43,14 @@ pdf:
 	python scripts/build_pdf_package.py
 
 console: seed
-	python -m swarmax.console --db data/swarmax.db \
-	--admin-user "$${SWARMAX_ADMIN:-admin}" --admin-password "$${SWARMAX_ADMIN_PASSWORD:?set SWARMAX_ADMIN_PASSWORD (min 12 chars)}"
+	@if [ -n "$${SWARMAX_ADMIN_PASSWORD}" ]; then \
+		echo "bootstrapping admin=$${SWARMAX_ADMIN:-admin} from SWARMAX_ADMIN_PASSWORD"; \
+		python -m swarmax.console --db data/swarmax.db \
+			--admin-user "$${SWARMAX_ADMIN:-admin}" --admin-password "$${SWARMAX_ADMIN_PASSWORD}"; \
+	else \
+		echo "SWARMAX_ADMIN_PASSWORD unset — using the seeded demo login (root / swarmax-demo-admin). Set it in production."; \
+		python -m swarmax.console --db data/swarmax.db; \
+	fi
 
 ch-mirror:
 	python -c "import sys; sys.path.insert(0, 'src'); \

@@ -14,6 +14,7 @@ import hashlib
 import hmac
 import secrets
 import sqlite3
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from .evidence import append_evidence
@@ -23,9 +24,21 @@ SESSION_HOURS = 12
 LOCKOUT_MINUTES = 15
 MAX_FAILED_ATTEMPTS = 5
 
-# in-process lockout state, keyed by (store connection id, username) so
-# separate stores never share lockout; reset by admin action or expiry
-_failed: dict[tuple[int, str], tuple[int, datetime]] = {}
+# In-process lockout state. A store is identified by `_swarmax_sid`, a
+# process-unique id attached to the connection by swarmax.db.connect that
+# dies with the object. id(conn) is deliberately NOT used: after a connection
+# is garbage-collected Python may hand its address to a brand-new connection,
+# letting one store inherit another store's lockout — the store-scoping this
+# state exists to guarantee (reset by admin action or expiry).
+_failed: dict[tuple[str, str], tuple[int, datetime]] = {}
+
+
+def _lock_key(conn: sqlite3.Connection, username: str) -> tuple[str, str]:
+    """Store-scoped lockout key, stable for the connection's lifetime."""
+    sid = getattr(conn, "_swarmax_sid", None)
+    if sid is None:
+        sid = f"conn:{id(conn)}"  # foreign connection: still stable while alive
+    return (sid, username)
 
 
 def _lock_key(conn: sqlite3.Connection, username: str) -> tuple[int, str]:

@@ -37,12 +37,16 @@ dependencies = []  # stdlib-only by design (§7 F0: no external runtime deps)
 dev = ["pytest>=8.0"]
 
 [project.scripts]
+swarmax-init = "swarmax.db:init_main"
 swarmax-console = "swarmax.console:main"
 swarmax-ingest = "swarmax.otlp:main"
 swarmax-otel-relay = "swarmax.bridges.otel_relay:main"
 
-# project.urls is intentionally omitted until the public repo + docs are live;
-# placeholder URLs on PyPI look worse than no URLs.
+[project.urls]
+Homepage = "https://github.com/goun7/Swarmax"
+Documentation = "https://github.com/goun7/Swarmax#readme"
+Repository = "https://github.com/goun7/Swarmax"
+Issues = "https://github.com/goun7/Swarmax/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
