@@ -10,6 +10,11 @@
 
 </div>
 
+[![CI](https://github.com/goun7/Swarmax/actions/workflows/ci.yml/badge.svg)](https://github.com/goun7/Swarmax/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/swarmax)](https://pypi.org/project/swarmax/)
+[![Python](https://img.shields.io/pypi/pyversions/swarmax)](https://pypi.org/project/swarmax/)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 ---
 
 ## What it is
@@ -68,16 +73,16 @@ published test vectors.
 ## Quickstart
 
 ```bash
+pip install swarmax           # stdlib-only; no dependencies to resolve
+# or from source:
 git clone https://github.com/goun7/Swarmax.git
 cd Swarmax
-pip install -e .            # stdlib-only; no dependencies to resolve
+pip install -e .
 
 swarmax-init                # create or upgrade a store (schema v10)
 python demo.py              # synthetic fleet: 8/8 alarm classes + FP budget
 make seed && make console   # realistic demo fleet -> http://127.0.0.1:8080
 ```
-
-The console is not yet on PyPI; install it from this repository for now.
 
 Demo console logins (created by the seeder — rotate immediately in
 production): `root` / `swarmax-demo-admin`, `viewer` / `swarmax-demo-viewer`.
