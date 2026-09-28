@@ -70,6 +70,28 @@ fits on a small VPS next to your agents, or scales to tens of millions of
 events on ClickHouse. Every crypto and ingest path is pinned to its RFC with
 published test vectors.
 
+## In 30 seconds
+
+```bash
+pip install swarmax                       # stdlib-only; no dependency resolution
+swarmax-init                             # create or upgrade the evidence store
+
+python -c "
+from swarmax import SwarmaxClient
+c = SwarmaxClient('http://127.0.0.1:4318', 'my-key', b'my-secret')
+c.set_agent('support-bot', model='gpt-4o-mini')
+with c.span():                            # timed block -> signed telemetry
+    run_my_agent_step()
+c.guard('web_search', fn, q)              # tool call + runaway-loop protection
+c.flush()
+"
+
+make seal                                 # seal the ledger: tampering breaks it
+```
+
+Every event above lands in an append-only, Merkle-sealed ledger that verifies
+offline — a dashboard screenshot is not evidence, this is.
+
 ## Quickstart
 
 ```bash
