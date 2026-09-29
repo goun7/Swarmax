@@ -58,7 +58,7 @@ SLIDES = [
      "ReliabilityBench + MAST-aligned taxonomy — academic spine, not vibes."),
     ("Business model",
      "Flat pricing per agent, not per seat",
-     "Open core ($0, Apache-2.0) → Team $199/mo → Fleet+Evidence $599/mo → "
+     "Open core ($0, Apache-2.0) → Team $99/mo → Fleet+Evidence $599/mo → "
      "Enterprise $2,400/mo+. Agent-based tiers sell budget predictability — "
      "the direct counter to E2's cost-escape problem. Break-even at 1 "
      "customer; 88–95% target gross margin."),

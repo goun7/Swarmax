@@ -16,7 +16,9 @@
 
 **Pazar.** Agentic AI yazılım harcaması **2030'da $985B** (Gartner, Şub 2026; 2025–30 CAGR %62,7).
 
-**Fiyat — hibrit güven-hendeği modeli (v4.3.2 kararı):** Açık Çekirdek **$0** (Apache-2.0, tam özellikli — self-host hendeği ücretsiz) · **Yönetilen Bulut:** Ekip **$199/ay** (10 ajan, operasyon bizde) · Filo+Kanıt **$599/ay** (50 ajan + kanıt teslimi) · Kurumsal **$2.400/ay+** (BYO-storage, özel SLA). **İlk-90-gün odağı — Evidence Trust Services:** haftalık mühür köklerine HSM'li **RFC 3161 sayaç-imzası** + denetçi portalı + bağımsız doğrulama API'si (**$350/ay**) — self-signed kanıtın hukuken zayıf kaldığı yerde üçüncü-taraf güveni satılır; hendek kod değil **güven ağı**. Enterprise modülü (SAML/SIEM/HA) yalnız ödenmiş pilotla doğrulanınca yazılır.
+**Fiyat — hibrit güven-hendeği modeli (v4.3.2 kararı):** Açık Çekirdek **$0** (Apache-2.0, tam özellikli — self-host hendeği ücretsiz) · **Yönetilen Bulut:** Ekip **$99/ay** (10 ajan, operasyon bizde) · Filo+Kanıt **$599/ay** (50 ajan + kanıt teslimi) · Kurumsal **$2.400/ay+** (BYO-storage, özel SLA). Eski **$199/ay** Team rakamı
+internal-only'dir — sunulmaz (sahip kararı 2026-09-29; kamu fiyatlandırması
+`docs/landing.md`). **İlk-90-gün odağı — Evidence Trust Services:** haftalık mühür köklerine HSM'li **RFC 3161 sayaç-imzası** + denetçi portalı + bağımsız doğrulama API'si (**$350/ay**) — self-signed kanıtın hukuken zayıf kaldığı yerde üçüncü-taraf güveni satılır; hendek kod değil **güven ağı**. Enterprise modülü (SAML/SIEM/HA) yalnız ödenmiş pilotla doğrulanınca yazılır.
 
 **Birim ekonomi.** Marj **%88–95** · Başabaş **1 müşteri** · Onboarding ~3 sa · Bakım ≤ 1 sa/ay/müşteri.
 

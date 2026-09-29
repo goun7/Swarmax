@@ -88,13 +88,14 @@ person answerable for the agents — but the $29 tier still works as the
 "upgrade from self-signed evidence" step: it is cheap enough to expense, and
 it is the first tier where the proof is worth more than the price.
 
-**Open decision (flag for the owner):** the strategy doc prices Team at
-$199/mo. The $29–$99 spread above follows the Postiz model from the brief and
-gives a lower, frictionless first paid step. If the evidence-trust position
-holds, $199 for Team is defensible and lifts MRR faster — but it pushes the
-first paid conversation up the ladder. Pick one; the table above assumes the
-brief's model. Unit economics in the strategy doc (88–95 % margin,
-breakeven at 1 customer) survive either choice.
+**Decision (resolved 2026-09-29):** the table above is the public pricing and
+supersedes the strategy doc's earlier **$199/mo** Team figure — Team ships at
+**$99/mo**; $199 is internal-only and is not offered anywhere customer-facing.
+The $29–$99 spread follows the Postiz model from the brief and keeps the first
+paid step frictionless. Unit economics in the strategy doc (88–95 % margin,
+breakeven at 1 customer) survive the change. The internal strategy docs
+(`SWARMAX.md` / `SWARMAX_EN.md` / `SWARMAX_ONEPAGER.md`) now list Team at
+$99/mo to match this page; do not reintroduce $199.
 
 ---
 
@@ -159,7 +160,8 @@ Secondary CTA: **[ Read the design record ]** (`SWARMAX_EN.md`).
 - Hero image: `assets/banner-v2.png`; mark: `assets/logo-mark-256.png`.
 - Keep the three-column comparison table above the fold; it is the whole
   pitch in one scan.
-- The pricing table is the only section that must not be published until the
-  owner resolves the $99 vs $199 Team question.
+- The pricing table is cleared for publication: the $99 vs $199 Team question
+  is resolved (owner decision, 2026-09-29) — Team ships at $99/mo, $199 is
+  internal-only and not offered. Internal docs must not reintroduce $199.
 - No motion, no auto-playing video, no fake "trusted by" strip. The product
   is a compliance tool; the page should read like one.

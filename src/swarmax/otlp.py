@@ -30,6 +30,7 @@ import threading
 import time
 from collections import Counter
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .db import connect, init_db_with_migrations
@@ -277,9 +278,23 @@ def _span_to_event(agent_id: str | None, span: dict, sattrs: dict,
 
 
 def _iso_from_ns(ns: int) -> str:
+    """Nanos since epoch → the store's ``YYYY-MM-DD HH:MM:SS.ffffff`` layout.
+
+    Sub-second resolution is load-bearing, not cosmetic: spans for one agent
+    routinely land inside the same wall-clock second (e.g. ``guard``'s blocked
+    attempt follows two executed calls microseconds later). Truncating to whole
+    seconds made their ``ts`` values identical, so ``ORDER BY ts`` returned
+    same-second events in an unspecified order and readers could not tell the
+    blocked attempt (error_class ``loop``) from the executed ones — the source
+    of the intermittent ``assert None == 'loop'`` CI failure. Microseconds keep
+    each event strictly ordered, and every ts reader parses the format via
+    ``datetime.fromisoformat`` unchanged.
+    """
     if ns <= 0:
         ns = time.time_ns()
-    return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(ns / 1e9))
+    sec, nanos = divmod(ns, 1_000_000_000)
+    return datetime.fromtimestamp(sec, tz=timezone.utc).strftime(
+        "%Y-%m-%d %H:%M:%S") + f".{nanos // 1000:06d}"
 
 
 def main() -> None:

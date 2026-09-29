@@ -279,13 +279,18 @@ lisans-değiştirme tuzağına (Grafana/MinIO dersi) girilmez. Hendek, kodun de�
 | Paket | Kapsam | Fiyat | Hedef |
 |---|---|---|---|
 | Açık Çekirdek | Self-host: collector + şema + tüm çekirdek modüller | **$0 (Apache-2.0)** | Topluluk, geliştirici |
-| Ekip (Bulut) | 10 AVBP, barındırma + yedek + sürüm yönetimi | **$199/ay** | Erken aşama ekipler |
+| Ekip (Bulut) | 10 AVBP, barındırma + yedek + sürüm yönetimi | **$99/ay** | Erken aşama ekipler |
 | Filo+Kanıt (Bulut) | 50 AVBP + kanıt teslimi + haftalık SLA/drift raporu | **$599/ay** | Üretimde çoklu-ajan KOBİ |
 | Kurumsal (Bulut) | Sınırsız AVBP + özel SLA + çoklu takım + BYO-storage | **$2.400/ay+** | Finans/sağlık/kritik iş hattı |
 
 > Self-host zaten ücretsiz ve eksiksizdir; bulut paketinin sattığı şey **operasyon
 > yükünün azaltılmasıdır** (ClickHouse/soğuk arşiv/yedek işletimi bizde). Bu,
 > GitLab/Postmark modelinin aynısıdır ve açık-çekirdekle çelişmez.
+>
+> **Fiyat tutarlılığı (sahip kararı, 2026-09-29):** kamu fiyatlandırması
+> `docs/landing.md`'dir; bu tablo onunla uyumludur (Ekip $99/ay). Eski
+> **$199/ay** Team rakamı yalnızca internal referanstır, sunulmaz — dokümanlarda
+> geri getirilmemelidir.
 
 **Hat 2 (ilk-90-gün odağı) — Evidence Trust Services:**
 

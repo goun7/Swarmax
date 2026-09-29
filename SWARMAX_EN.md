@@ -339,7 +339,7 @@ Fleetmind ↔ Agent Assurance Pipeline remain distinct; Swarmax positions them a
 | Tier | Scope | Price | Target |
 |---|---|---|---|
 | Open Core | Self-host collector + open `swx.*` schema + basic metrics | **$0 (Apache-2.0)** | Community, developers |
-| Team | 10 AVBP + 5 metric families + email/Slack alarms | **$199/mo** | Early-stage teams |
+| Team | 10 AVBP + 5 metric families + email/Slack alarms | **$99/mo** | Early-stage teams |
 | Fleet+Evidence | 50 AVBP + signed evidence stream + weekly SLA/drift report + SSO | **$599/mo** | Multi-agent SMBs in production |
 | Enterprise | Unlimited AVBP + custom SLA + multi-team + BYO-storage + compliance pack | **$2,400/mo+** | Finance/health/mission-critical |
 
@@ -347,6 +347,10 @@ Fleetmind ↔ Agent Assurance Pipeline remain distinct; Swarmax positions them a
 > (LangSmith ~$39/seat/mo; unit-based models can create 8–15 billing units per
 > agent). Swarmax sells budget predictability with **agent-based flat tiers** — a
 > direct counter-position to E2's cost-unpredictability problem.
+>
+> **Pricing alignment (owner decision, 2026-09-29):** `docs/landing.md` is the
+> public pricing and this table matches it (Team $99/mo). The earlier **$199/mo**
+> Team figure is internal-only and not offered; do not reintroduce it.
 
 ### 5.4 12-Month P&L — Target Scenario (assumption: mix-weighted $490 ABP)
 
