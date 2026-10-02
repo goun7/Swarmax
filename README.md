@@ -261,6 +261,51 @@ sell.
   receipts, [TamgaProtocol](../../05_acik_kaynak/TamgaProtocol) the
   persistent anchor. Same primitive, different surface.
 
+## Akademik Kaynaklar (2024-2026)
+
+Bu calisma asagidaki arastirmaya dayanir:
+
+- [1] **AgentMonitor: A Plug-and-Play Framework for Predictive and Secure
+  Multi-Agent Systems** — Chan et al., arXiv 2024 (cs.CL).
+  [arXiv:2408.14972](https://arxiv.org/abs/2408.14972) — plug-and-play
+  run-time monitoring of multi-agent LLM systems; the closest published
+  analogue to Swarmax's per-agent fact pipeline.
+- [2] **SIEVE: Selective Integrity Verification and Escalation for Defending
+  LLM Agents against Indirect Prompt Injection** — Liang et al., arXiv 2025
+  (cs.AI). [arXiv:2512.06716](https://arxiv.org/abs/2512.06716) —
+  integrity verification plus an escalation policy on detected violations;
+  the same verify-then-escalate shape as the APD alarm map.
+- [3] **ESAA: Event Sourcing for Autonomous Agents in LLM-Based Software
+  Engineering** — Brito dos Santos Filho, arXiv 2026 (cs.AI).
+  [arXiv:2602.23193](https://arxiv.org/abs/2602.23193) — event sourcing as
+  the persistence model for autonomous agent runs; the academic basis for
+  the append-only ledger behind the ClickHouse mirror.
+- [4] **Observability and Fault Injection for LLM-Based Multi-Agent Systems
+  in Software Engineering** — Seyedghorban et al., arXiv 2026 (cs.SE).
+  [arXiv:2608.24271](https://arxiv.org/abs/2608.24271) — observability and
+  fault-injection testing for LLM multi-agent systems; the empirical
+  grounding for Swarmax's alarm-class injection drills.
+- [5] **NovaFabric: Tamper-Evident, Replayable Evidence for Autonomous AI
+  Agent Runs** — Seyedkazemi Ardebili, arXiv 2026 (cs.CR).
+  [arXiv:2609.12582](https://arxiv.org/abs/2609.12582) — tamper-evident,
+  replayable evidence records for agent runs; independently reaches the
+  sealed-evidence property the Merkle/Ed25519 chain provides here.
+- [6] **Agent Flight Recorder: Tamper-Evident Audit Trails with On-Chain
+  Anchoring for Long-Horizon Tool-Using Agents** — Bindschaedler et al.,
+  arXiv 2026 (cs.CR). [arXiv:2609.01931](https://arxiv.org/abs/2609.01931) —
+  anchored audit trails for long-horizon tool-using agents; the academic
+  counterpart to Swarmax's sealed ledger and cold-archive anchoring.
+- [7] **Agent-Warden: eBPF-Based Kernel-Native Process-File Provenance
+  Tracking for LLM Agents** — Cui et al., arXiv 2026 (cs.CR).
+  [arXiv:2609.38245](https://arxiv.org/abs/2609.38245) — kernel-native
+  provenance capture for agent behaviour; complementary provenance layer
+  beneath the application-level events Swarmax consumes.
+- [8] **LLM Agents Can Easily Tamper With Their Own Traces** — Qin et al.,
+  arXiv 2026 (cs.CR). [arXiv:2609.30266](https://arxiv.org/abs/2609.30266) —
+  demonstrates that agent-emitted traces are rewriteable by the agents
+  themselves; the threat model that makes the seal and counter-signature
+  load-bearing rather than decorative.
+
 <div align="center">
 <img src="assets/logo-mono.svg" width="56" alt="" style="vertical-align:middle">
 &nbsp;<sub>Seven points, one chain — measure everything, seal what matters.</sub>
