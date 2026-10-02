@@ -240,6 +240,27 @@ Deployment limits that are true today, not on a roadmap slide:
 Apache-2.0. Free to self-host, fork and run — the operation of it is what we
 sell.
 
+## Academic & technical references
+
+- **Observability as evidence, not telemetry** — Swarmax does not invent
+  its own event format; it consumes the events services already emit and
+  seals them. The distinction matters: telemetry you generate yourself is
+  a claim; telemetry the service emitted before you asked is closer to
+  evidence.
+- **Tamper-evident monitoring** — the core property x402's own ecosystem
+  converged on independently:
+  [x402 #2332](https://github.com/x402-foundation/x402/issues/2332)
+  (post-settlement accountability, 214+ comments) — the summary line is
+  "logs are rewritable; a hash-chain anchor is not." Swarmax applies the
+  same property to fleet health that Sester applies to payment receipts.
+- **EU AI Act Article 12** (automated logging, in force 2 December 2027):
+  high-risk systems must keep logs that resist modification. An audit
+  layer whose logs are rewriteable cannot satisfy this; hence the seal.
+- **Mesh connections** — Swarmax is the audit layer for the fleet;
+  [63-Sester](../63-Sester) provides the same property for payment
+  receipts, [TamgaProtocol](../../05_acik_kaynak/TamgaProtocol) the
+  persistent anchor. Same primitive, different surface.
+
 <div align="center">
 <img src="assets/logo-mono.svg" width="56" alt="" style="vertical-align:middle">
 &nbsp;<sub>Seven points, one chain — measure everything, seal what matters.</sub>
