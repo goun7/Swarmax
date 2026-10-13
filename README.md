@@ -70,6 +70,117 @@ fits on a small VPS next to your agents, or scales to tens of millions of
 events on ClickHouse. Every crypto and ingest path is pinned to its RFC with
 published test vectors.
 
+## Architecture — where the events go
+
+Swarmax never sits in your agents' request path. It consumes the telemetry
+they already emit and turns it into status, alarms and proof:
+
+```
+your agents (LangChain / CrewAI / AutoGen / custom SDK)
+   │ OTLP/HTTP+JSON (gen_ai.* / swx.*)   FleetSdk span / guard   Langfuse bridge
+   ▼                                     ▼                        ▼
+   otlp.py ingest — HMAC anti-replay; unsigned OTLP is rejected (fail-closed 503)
+   ▼
+   pipeline.py — events + guard calls → rolling windows → per-agent facts
+      error rate · deny ratio · retries · ticket aging · JSD tool drift · n-gram loop
+   │
+   ├─► ch.py — ClickHouse ReplacingMergeTree mirror (10M+ events, per-agent < 200 ms)
+   ▼
+   metrics/apd.py — every fact onto the escalation map: signal → severity + SLA clock
+      every alarm raise and resolution is also appended to the evidence ledger
+   │
+   ├───────────────────────────────────────┐
+   ▼                                       ▼
+ console.py / report.py                   evidence_ledger (append-only)
+ fleet status, SLA queue,                 SHA-256 prev-hash chain; UPDATE and
+ per-agent drill-down, weekly digest      DELETE refused by triggers
+                                          │
+                                 sealing.py — Merkle root over the chain
+                                 + Ed25519 signature over (root ‖ covers),
+                                 optionally counter-signed by an RFC 3161 TSA
+                                          │
+                                 coldstore.py — S3-compatible archive;
+                                 manifest + chunks verify offline, with no
+                                 private key and no database
+```
+
+Three properties fall out of that shape, and they are the reason the project
+exists:
+
+- **status is derived, not reported** — every counter is recomputed from the
+  store on read, so the console and the report can never disagree with the
+  ledger underneath them;
+- **alarms are ledger entries** — an alarm is not a notification, it is a row
+  in an append-only chain, so "the fleet drifted on Tuesday" is a verifiable
+  statement rather than a dashboard recollection;
+- **proof is self-contained** — a seal verifies against the ledger alone, and
+  an archived ledger verifies against its manifest alone; neither needs
+  Swarmax running, which is what an auditor actually wants.
+
+## Is my fleet working? — the three questions, answered
+
+The portfolio question this project exists for is *"filoton çalışıyor mu, neye
+mal oldu, denetimde kanıtlayabilir misin?"* Each part maps onto one read-only
+path over the store.
+
+**1. Is it working?** — four counters and one triage queue:
+
+```python
+from swarmax.db import connect, init_db_with_migrations
+from swarmax.console import FleetConsole
+
+conn = connect("data/swarmax.db")
+init_db_with_migrations(conn)
+
+s = FleetConsole(conn).summary()
+# s == {"open_alarms": …, "breached": …, "agents": …, "events_24h": …}
+# `breached` counts open alarms whose SLA clock has already expired.
+
+for a in FleetConsole(conn).open_alarms():        # severity first, then deadline
+    print(a["severity"], a["signal"], "due", a["sla_deadline"])
+```
+
+In production that surface is the console at <http://127.0.0.1:8080>
+(`make console`): the SLA queue counts down, self-escalates when its clock
+expires, and drills down per agent.
+
+**2. What did it cost?** — per-agent attribution instead of one aggregate bill:
+
+```python
+from swarmax.report import WeeklyReport
+
+print(WeeklyReport(conn).render())
+# §1 behavioural drift · §2 escalations & SLA · §3 cost ranking (top 5, 7d)
+#   · §4 first-seen error classes · §5 evidence integrity
+```
+
+**3. Can you prove it?** — the part nothing else does. Every alarm raise and
+resolution is anchored in the append-only ledger; the ledger is sealed with a
+Merkle root under an Ed25519 signature, optionally counter-signed by an
+RFC 3161 timestamp authority. Verification recomputes everything from the
+store, so it is evidence rather than a claim:
+
+```python
+from swarmax.evidence import verify_chain
+from swarmax.sealing import verify_seals
+
+verify_chain(conn)     # (True, N) — N entries re-walked, no broken link
+verify_seals(conn)     # {"seals": N, "all_ok": True, "results": [...]}
+```
+
+Or as drills an auditor can run themselves — both exit 0 on PASS:
+
+```bash
+make drill             # export → rebuild → verify the whole store
+make compliance-drill  # logging / traceability / erasure walkthrough (re-runnable)
+```
+
+Tampering anywhere in the chain breaks verification: see
+[`tests/test_sealing.py`](tests/test_sealing.py) and
+[`tests/test_audit_trail_dallar.py`](tests/test_audit_trail_dallar.py), and
+the fleet-status invariants in
+[`tests/test_fleet_status_dallar.py`](tests/test_fleet_status_dallar.py).
+
 ## In 30 seconds
 
 ```bash
@@ -143,7 +254,7 @@ swarmax-otel-relay --help
 ### Development
 
 ```bash
-python -m pytest tests -q      # 171 tests: RFC vectors, alarm injection, sealing, perf
+python -m pytest tests -q      # 2020 tests (measured): RFC vectors, alarm injection, sealing, audit trail, fleet status, perf
 python scripts/smoke_e2e.py    # end-to-end: ingest -> alarms -> seal -> console
 make js-test                   # Node SDK contract tests
 ```
