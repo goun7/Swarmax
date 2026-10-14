@@ -57,9 +57,10 @@ def test_lock_key_returns_tuple(db):
 
 
 def test_lock_key_first_element_is_conn_id(db):
+    # SW-AUTH-1 fix-sonrasi: sid uuid4 hex (db.connect atar), id(conn) DEGIL
     k = auth._lock_key(db, "user1")
-    assert k[0] == id(db)
-    assert isinstance(k[0], int)
+    assert k[0] == db._swarmax_sid
+    assert isinstance(k[0], str) and len(k[0]) == 32
 
 
 def test_lock_key_second_element_is_username(db):
@@ -116,15 +117,19 @@ def test_lock_key_conn_id_changes_after_close_reopen():
 
 def test_lock_key_matches_failed_attempts_dict_usage(db):
     # _failed ve _attempts map'leri ayni key-formatini kullanir
+    # SW-AUTH-1 fix-sonrasi: key[0] store-sid (str uuid4 hex)
     k = auth._lock_key(db, "user1")
-    assert isinstance(k[0], int) and isinstance(k[1], str)
+    assert isinstance(k[0], str) and isinstance(k[1], str)
 
 
-def test_lock_key_with_closed_conn_id_still_int():
+def test_lock_key_with_closed_conn_keeps_sid():
     conn = connect(":memory:")
+    sid = conn._swarmax_sid
     conn.close()
     k = auth._lock_key(conn, "user1")
-    assert isinstance(k[0], int)  # id() her zaman int doner
+    # close sonrasi nesne yasar; sid hala ulasilabilir (foreign-degil, bizim)
+    assert k[0] == sid
+    assert isinstance(k[0], str)
 
 
 # ==================================================== _tenant_for_email =====

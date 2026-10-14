@@ -41,10 +41,6 @@ def _lock_key(conn: sqlite3.Connection, username: str) -> tuple[str, str]:
     return (sid, username)
 
 
-def _lock_key(conn: sqlite3.Connection, username: str) -> tuple[int, str]:
-    return (id(conn), username)
-
-
 def reset_lockout(conn: sqlite3.Connection, username: str) -> None:
     """Admin utility: clear failed-attempt state for one user."""
     _failed.pop(_lock_key(conn, username), None)

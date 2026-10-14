@@ -643,13 +643,15 @@ class TestCsrfKontrol:
 
 # ================================================== _lock_key / reset =======
 class TestKilitAnahtari:
-    """_lock_key canli davranis + BULGU-1 (store-scoping YOK) + reset_lockout."""
+    """_lock_key canli davranis + SW-AUTH-1 FIX + reset_lockout."""
 
-    def test_anahtar_tuple_id_ve_username(self, db):
-        """Canli dal: (id(conn), username) — BULGU-1'e ragmen id(conn) uzerinde."""
+    def test_anahtar_tuple_sid_ve_username(self, db):
+        """Canli dal (FIX-sonrasi): (store-sid, username) — sid uuid4 hex,
+        baglanti-omurlu, _swarmax_sid'den gelir (db.connect atar)."""
         k = auth._lock_key(db, "u1")
         assert isinstance(k, tuple) and len(k) == 2
-        assert k[0] == id(db)
+        assert isinstance(k[0], str)
+        assert k[0] == db._swarmax_sid
         assert k[1] == "u1"
 
     def test_anahtar_ayni_girdide_kararli(self, db):
@@ -670,11 +672,16 @@ class TestKilitAnahtari:
         finally:
             baska.close()
 
-    def test_swarmax_sid_hicbir_zaman_atanmadi(self, db):
-        """BULGU-1 kaniti: db.Connection._swarmax_src annotation'dur;
-        src/ agacinda HIC atANMAMIS'tir — olcu _lock_key yine de id(conn) verir."""
-        assert getattr(db, "_swarmax_sid", "YOK") == "YOK"
-        assert auth._lock_key(db, "u1")[0] == id(db)
+    def test_swarmax_sid_atandi_store_scoped(self, db):
+        """SW-AUTH-1 FIX-Sonrasi kaniti: db.connect() _swarmax_sid'yi atar
+        (uuid4 hex); _lock_key bunu kullanir — adres-geri-donusum-korumasi
+        artik SAGLANIYOR. ONCE: _swarmax_sid SADECE-annotation'di, connect()
+        HIC-ATAMIYORDU ve _lock_key IKI-KEZ-tanimliydi (L44 id(conn) L36'yi
+        gecersiz kilardi) — bir-store-digerinin-lockoutunu-miras-alabilirdi."""
+        sid = getattr(db, "_swarmax_sid", "YOK")
+        assert isinstance(sid, str) and len(sid) == 32  # uuid4().hex
+        assert auth._lock_key(db, "u1")[0] == sid
+        assert auth._lock_key(db, "u1")[0] != id(db)
 
     def test_reset_lockout_sayaci_temizler(self, db_admin):
         """Dal: reset_lockout -> _failed.pop; ardindan giris serbest."""

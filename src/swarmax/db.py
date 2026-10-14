@@ -7,6 +7,7 @@ from __future__ import annotations
 import pathlib
 import sqlite3
 from datetime import datetime
+from uuid import uuid4
 
 # explicit adapter: no reliance on the deprecated default datetime adapter (py3.12+)
 sqlite3.register_adapter(datetime, lambda d: d.isoformat(sep=" "))
@@ -38,6 +39,11 @@ def connect(path: str = ":memory:") -> sqlite3.Connection:
     """
     conn = sqlite3.connect(path, check_same_thread=False, factory=Connection)
     conn.row_factory = sqlite3.Row
+    # Store-id: process-unique, dies with the object. id(conn) is unsafe —
+    # Python may hand a recycled address to a brand-new connection after the
+    # old one is garbage-collected, letting one store inherit another's
+    # lockout (see auth._lock_key and the Connection docstring).
+    conn._swarmax_sid = uuid4().hex
     conn.execute("PRAGMA journal_mode=WAL")   # §8 R2: single-node crash durability
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA synchronous=NORMAL")
