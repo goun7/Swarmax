@@ -242,9 +242,10 @@ class TestZincirDogrulama:
         evidence.append_evidence(db, "c", {"i": 3})
         # append_evidence son satirin payload_hash'ini alir -> 3. satir bagli;
         # ama 2. satirin payload_hash'i kendi payload'una uymuyor olsa da
-        # verify_chain yalnizca prev_hash baglantilarini sayar.
+        # SW-EVID-2 (DUZELTILDI): 'sabit-olmayan' gecerli bir SHA-256 ozeti
+        # DEGILDIR — verify_chain artik 2. satirin formatini kirmizi sayar.
         ok, n = evidence.verify_chain(db)
-        assert (ok, n) == (True, 3)
+        assert (ok, n) == (False, 1)
 
 
 # ============================================ append-only tetikleyici =======

@@ -8,10 +8,17 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 
 UNSIGNED_F0 = b"F0-UNSIGNED-F2-PENDING"
 GENESIS = "GENESIS"
+
+# SW-EVID-2: payload'lar tabloda saklanmadigi icin icerik-dogrulama imkansizdir,
+# ama her payload_hash gercek bir SHA-256 ozeti (64-kucuk-hex) OLMALIDIR —
+# manual/buggy bir INSERT 'sabit-olmayan' gibi bir deger koyup zinciri
+# gecersizlestirebilir; eski verify_chain yalnizca prev baglarini sayiyordu.
+_DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def payload_digest(payload: dict) -> str:
@@ -37,13 +44,21 @@ def append_evidence(conn: sqlite3.Connection, event_type: str, payload: dict) ->
 
 
 def verify_chain(conn: sqlite3.Connection) -> tuple[bool, int]:
-    """Recompute the chain; returns (ok, entries_checked)."""
+    """Recompute the chain; returns (ok, entries_checked).
+
+    Her satirin payload_hash'inin gecerli bir SHA-256 ozeti oldugunu da
+    denetler (SW-EVID-2) — icerik-dogrulama payload'lar tabloda olmadigi
+    icin mumkun degildir, ama 'gercek-ozet-olmayan' kayit artik kirmizi.
+    """
     prev = GENESIS
     checked = 0
     for row in conn.execute(
             "SELECT seq, payload_hash, prev_hash FROM evidence_ledger ORDER BY seq"):
+        h = row["payload_hash"] or ""
+        if not _DIGEST_RE.match(h):        # SW-EVID-2: gercek-ozet-zorunlu
+            return False, checked
         if row["prev_hash"] != prev:
             return False, checked
-        prev = row["payload_hash"]
+        prev = h
         checked += 1
     return True, checked
