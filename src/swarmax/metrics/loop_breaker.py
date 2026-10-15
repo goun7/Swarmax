@@ -18,12 +18,34 @@ LOOP_RUN_THRESHOLD = 3  # consecutive identical hashes that trip the breaker
 
 
 def normalize_arguments(arguments: object) -> str:
-    """Canonical JSON: sorted keys, no whitespace — hash-stable across key order."""
-    return json.dumps(arguments, sort_keys=True, separators=(",", ":"))
+    """Canonical JSON: sorted keys, no whitespace — hash-stable across key order.
+
+    Karisik anahtar turleri (int+str) json.dumps(sort_keys=True) ile TypeError
+    firlatir (SW-LB-1B, Py3.14) — once (tip-adi, repr) ile siralanip string
+    anahtara cevrilir; anahtar-tip carpismasi ({1:a} vs {"1":a}) da boylece
+    cozulur. Deger-seviyesi tuple/list carpismasi (BULGU-4) kalir.
+    """
+
+    def _key(k: object) -> str:
+        return k if isinstance(k, str) else f"{type(k).__qualname__}:{k!r}"
+
+    def _norm(obj: object) -> object:
+        if isinstance(obj, dict):
+            return {_key(k): _norm(v) for k, v in sorted(obj.items(), key=lambda kv: _key(kv[0]))}
+        if isinstance(obj, (list, tuple)):
+            return [_norm(v) for v in obj]
+        return obj
+
+    return json.dumps(_norm(arguments), separators=(",", ":"))
 
 
 def call_hash(tool_name: str, arguments: object) -> str:
-    return hashlib.sha256(f"{tool_name}{normalize_arguments(arguments)}".encode("utf-8")).hexdigest()
+    """sha256(uzunluk|tool_name|normalize(arguments)) — SW-LB-1A: uzunluk-on-eki
+    ayraci olmadan f"{tool}{json}" birlestirmesi belirsizdi:
+    call_hash("x", 12) == call_hash("x1", 2) == sha256("x12"). Ayirac ile
+    (tool,args) ciftleri tek-tarafli-cozulebilir hale gelir.
+    """
+    return hashlib.sha256(f"{len(tool_name)}|{tool_name}|{normalize_arguments(arguments)}".encode("utf-8")).hexdigest()
 
 
 @dataclass

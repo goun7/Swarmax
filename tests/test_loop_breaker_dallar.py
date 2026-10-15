@@ -139,22 +139,25 @@ class TestNormalizeArguments:
         assert lb.normalize_arguments({"a": (1, 2)}) == lb.normalize_arguments({"a": [1, 2]})
 
     def test_int_anahtar_str_yasinda_carpismasi(self):
-        """Dal D6 + BULGU-4: {1:'a'} ile {'1':'a'} AYNI cikti (int anahtar str'ye zorlanir)."""
-        assert lb.normalize_arguments({1: "a"}) == lb.normalize_arguments({"1": "a"})
+        """Dal D6 + SW-LB-1B (DUZELTILDI): {1:'a'} ile {'1':'a'} artik FARKLI —
+        anahtarlar (tip-adi, repr) ile siralanip serilesir (eski: ayni cikti)."""
+        assert lb.normalize_arguments({1: "a"}) != lb.normalize_arguments({"1": "a"})
 
     def test_bool_anahtar_str_yasinda_carpismasi(self):
-        """Dal D7 + BULGU-4: {True:'a'} ile {'true':'a'} AYNI cikti."""
-        assert lb.normalize_arguments({True: "a"}) == lb.normalize_arguments({"true": "a"})
+        """Dal D7 + SW-LB-1B (DUZELTILDI): {True:'a'} ile {'true':'a'} artik FARKLI."""
+        assert lb.normalize_arguments({True: "a"}) != lb.normalize_arguments({"true": "a"})
 
     def test_int_float_ayrimi_korunur(self):
         """Dal D8: 1 ile 1.0 FARKLI serilesir — tip carpismasi gerceklesmez."""
         assert lb.normalize_arguments(1) != lb.normalize_arguments(1.0)
         assert lb.normalize_arguments({"v": 1}) != lb.normalize_arguments({"v": 1.0})
 
-    def test_karisik_anahtar_turu_typeerror(self):
-        """Dal D9 + BULGU-6: int+str karisik anahtar sort_keys ile TypeError firlatir."""
-        with pytest.raises(TypeError):
-            lb.normalize_arguments({1: "a", "b": 2})
+    def test_karisik_anahtar_turu_duzeltildi(self):
+        """Dal D9 + BULGU-6 (DUZELTILDI SW-LB-1B, Py3.14): int+str karisik anahtar
+        artik TypeError firlatmaz — (tip-adi, repr) siralamasi ile gecerli JSON."""
+        sonuc = lb.normalize_arguments({1: "a", "b": 2})
+        assert isinstance(sonuc, str) and sonuc.startswith("{")
+        assert sonuc == lb.normalize_arguments({1: "a", "b": 2})
 
     @pytest.mark.parametrize("args", [
         {"a": 1}, None, True, "x", [1, 2], {"z": {"x": 2, "y": 1}}, 3.14, {},
@@ -202,24 +205,32 @@ class TestCallHash:
         assert lb.call_hash("t", once) == lb.call_hash("t", sonda)
 
     @pytest.mark.parametrize("ilk, ikinci", [
-        (("x", 12), ("x1", 2)),        # BULGU-1: "x"+"12" == "x1"+"2" == "x12"
-        (("y", 123), ("y1", 23)),      # "y123" — 3 komponent
-        (("y", 123), ("y12", 3)),      # "y123" — baska bolme
+        (("x", 12), ("x1", 2)),        # SW-LB-1A: "1:x|12" vs "2:x1|2"
+        (("y", 123), ("y1", 23)),      # "1:y|123" vs "2:y1|23"
+        (("y", 123), ("y12", 3)),      # baska bolme
         (("z", 45), ("z4", 5)),        # "z45"
     ])
-    def test_ayrac_yok_carpismasi(self, ilk, ikinci):
-        """Dal D15 + BULGU-1: || birlestirmesinde ayraç yok — farkli ciftler
-        ayni fingerprint üretebilir (cok-basamakli sayisal arguman)."""
-        assert lb.call_hash(*ilk) == lb.call_hash(*ikinci)
+    def test_ayracsiz_carpismasiz(self, ilk, ikinci):
+        """Dal D15 + SW-LB-1A (DUZELTILDI): uzunluk-on-eki ayraci ile (tool,args)
+        ciftleri artik FARKLI fingerprint verir — tek-tarafli-cozulebilir."""
+        assert lb.call_hash(*ilk) != lb.call_hash(*ikinci)
 
     @pytest.mark.parametrize("args_a, args_b", [
-        ({"a": (1, 2)}, {"a": [1, 2]}),  # D5 tuple/list
-        ({1: "a"}, {"1": "a"}),          # D6 int anahtar
-        ({True: "a"}, {"true": "a"}),    # D7 bool anahtar
+        ({"a": (1, 2)}, {"a": [1, 2]}),  # D5 tuple/list (BULGU-4: hala ayni)
     ])
-    def test_tip_carpismasi_hash_a_tasinir(self, args_a, args_b):
-        """Dal D16 + BULGU-4: tip carpismasi normalize seviyesinden hash'e tasinir."""
+    def test_deger_seviyesi_tip_carpismasi_kalir(self, args_a, args_b):
+        """Dal D16 + BULGU-4 (kismen-duzeltildi): deger-seviyesi tuple/list carpismasi
+        normalize'da kalir (anahtar-seviyesi SW-LB-1B ile cozuldu)."""
         assert lb.call_hash("t", args_a) == lb.call_hash("t", args_b)
+
+    @pytest.mark.parametrize("args_a, args_b", [
+        ({1: "a"}, {"1": "a"}),          # D6 int anahtar — DUZELTILDI
+        ({True: "a"}, {"true": "a"}),    # D7 bool anahtar — DUZELTILDI
+    ])
+    def test_anahtar_tip_carpismasi_cozuldu(self, args_a, args_b):
+        """Dal D16 + SW-LB-1B (DUZELTILDI): anahtar-tip carpismasi artik hash'e
+        tasinmaz — (tip-adi, repr) serilesimi ayirir."""
+        assert lb.call_hash("t", args_a) != lb.call_hash("t", args_b)
 
     def test_int_float_hash_ayrimi(self):
         """Dal D8+D14: 1 vs 1.0 farkli hash — tip korunmuyor olsa da deger ayrimi var."""
