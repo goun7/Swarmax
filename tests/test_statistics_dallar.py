@@ -145,8 +145,10 @@ def test_min_obs_baskisi_daha_erken_silahlanir():
     assert r5.armed is True
 
 
-def test_min_obs_sifir_ikinci_adimda_silahli():
-    """D5: min_obs=0 -> n>=0 her zaman dogru; sigma>0 olunca z hesaplanir."""
+def test_min_obs_sifir_bir_alt_sinira_yukselir():
+    """D5 (DUZELTILDI 7d2137ea-4): min_obs=0 'warmup=n>=0' ile R3-sozlesmesini
+    tamamen-by-pass-eder — 0 artik-bire-floor'lanir (0-ve-1-ayni-ciktilari
+    verir-ama-sifir-olarak-kabul-edilmez). Ciktilar-eski-davranisla-ayni."""
     st = EwmaState(calibrated=True)
     r1 = ewma_update(st, 5.0, min_obs=0)
     assert r1.z is None  # sigma hala 0

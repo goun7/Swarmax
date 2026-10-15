@@ -53,8 +53,12 @@ def ewma_update(state: EwmaState, cost: float, *,
     ``min_obs`` overrides the R3 warm-up length: the alarm path keeps the
     30-observation cold-start discipline; display-only consumers (console
     charts over 7 daily aggregates) pass a shorter cadence-appropriate value.
+    7d2137ea-4 (DUZELTILDI): min_obs=0 R3-warmup-tamamen-bypaslayip-ilk-
+    adimda-silahlanmaya-yol-aciyordu — bir-alt-sinira-floor'lanir (0-bir-
+    ile-ayni-ciktiyi-verir-ama-sifir-kazara-kabul-edilmez; alarm-disiplini-
+    sozlesmesi-okunabilir-tutar).
     """
-    warmup = EWMA_MIN_OBS if min_obs is None else min_obs
+    warmup = EWMA_MIN_OBS if min_obs is None else max(min_obs, 1)
     if state.n == 0:
         state.mu = cost
         state.sigma2 = 0.0
