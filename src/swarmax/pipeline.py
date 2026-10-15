@@ -286,10 +286,30 @@ class Pipeline:
         append_evidence(self.conn, "baseline_audit", {"note": note, **payload})
 
     # ---------------------------------------------------------------- evaluate
+    def _close_expired_calibration(self, agent_id: str) -> None:
+        """F2 (aa23e082-bulgu): §3.3 14-gunluk-pencere-asla-kapanmiyordu —
+        closed=True-yalnizca-synthetic-veya-restart-restore-ile-geliyordu;
+        calibration_until-gecmis-pencere-açik-kaldi ( calibration_suppressed
+        sonsuza-kadar, alarmlar-sürekli-ölülendi). Ilk-evaluasyonda-süresi-
+        dolmus-pencere-kapatilir-ve-persist-edilir (D1-restart-restore-ile
+        uyumlu-teknik-kanal)."""
+        row = self.conn.execute(
+            "SELECT calibration_until, closed FROM agent_calibration"
+            " WHERE agent_id=?", (agent_id,)).fetchone()
+        if not row or row["closed"]:
+            return
+        until = _parse_ts(row["calibration_until"])
+        if until is not None and _utcnow() >= until:
+            self.conn.execute(
+                "UPDATE agent_calibration SET closed=1 WHERE agent_id=?",
+                (agent_id,))
+            self.apd.window_for(agent_id, synthetic=False).closed = True
+
     def evaluate_agent(self, agent_id: str, *,
                        daily_cost: float | None = None) -> list[Alarm]:
         """Evaluate every §4.2 fact for one agent, map onto the SLA table and
         persist non-suppressed alarms to the SLA queue + evidence ledger."""
+        self._close_expired_calibration(agent_id)
         facts: dict[str, bool] = {
             "error.rate>0.20": self.fact_error_rate(agent_id),
             "permission.deny>0.20": self.fact_deny_ratio(agent_id),
@@ -300,7 +320,12 @@ class Pipeline:
             "error.new_class_seen": agent_id in self.new_class_hits,
         }
         if daily_cost is not None:
-            calibrated = self.apd.window_for(agent_id, synthetic=True).closed
+            # F3: 'synthetic=True'-kwargi-burada-YALAN-soyluyordu (agent-zaten
+            # kayitli; yontem-yalnizca-yok-create-edince-onceden-kapali-
+            # pencere-verir). Bilinmeyen-agent-icin-GERCEK-pencere-acilir —
+            # cost-alarmlari-henuz-baskili (fail-closed-oncelikli), 14-gun-
+            # sonra-_close_expired_calibration-kapatir.
+            calibrated = self.apd.window_for(agent_id).closed
             facts["cost.daily>2x_ewma"] = self.apd.fact_cost_spike(
                 agent_id, daily_cost, calibrated=calibrated)
         alarms = self.apd.evaluate(facts, agent_id)
