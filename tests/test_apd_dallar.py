@@ -580,12 +580,19 @@ class TestEvaluate:
         ({"new_class_seen": True}, set()),   # classifier.CLASS_TRIGGERS ile uyumsuz key
         ({"error.rate>0.20": False}, set()),
     ])
-    def test_bilinmeyen_sinyal_sessizce_atlanir(self, facts, beklenen_uretilen):
+    def test_bilinmeyen_sinyal_not_duser(self, facts, beklenen_uretilen):
+        """D40 (DUZELTILDI F4): SIGNAL_MAP disi-sinyaller-hala-alarm-uretmez
+        (KeyError-YOK, severity-bilinmeden-uydurulamaz) ama artik
+        'unknown_signal:<agent>:<signal>'-notu-ile-iz-birakir — eski
+        sessiz-atma-fail-silent-degildi."""
         apd = FleetApd()
-        # D40: SIGNAL_MAP disi sinyaller -> atlanir, KeyError YOK
         alarms = apd.evaluate(facts, "a1")
         assert {a.signal for a in alarms} == beklenen_uretilen
-        assert apd.audit_notes == []
+        bilinmeyen = {s for s, v in facts.items() if v and s not in SIGNAL_MAP}
+        for s in bilinmeyen:
+            assert any(f"unknown_signal:a1:{s}" in n for n in apd.audit_notes)
+        if not bilinmeyen:
+            assert apd.audit_notes == []
 
     @pytest.mark.parametrize("signal,beklenen_baskili", [
         # D42: acik pencerede yangin-genel sinyaller (Info/Emergency) ATESLER

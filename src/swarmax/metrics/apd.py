@@ -161,7 +161,15 @@ class FleetApd:
         window = self.window_for(agent_id)
         alarms: list[Alarm] = []
         for signal, fired in facts.items():
-            if not fired or signal not in SIGNAL_MAP:
+            if not fired:
+                continue
+            if signal not in SIGNAL_MAP:
+                # F4 (aa23e082-bulgu): bilinmeyen-sinyal-SESSIZCE-dusuruluyordu
+                # ( fail-silent — yeni-sinyal-turu-hic-iz-birakmazdi). Alarm
+                # uretmiyoruz (severity/SLA bilinmeden-uydurulamaz) ama iz-
+                # birakma-kanaliyla-not-duser — calibration_suppressed-ile
+                # ayni-gorunurluk-katmani.
+                self.audit_notes.append(f"unknown_signal:{agent_id}:{signal}")
                 continue
             rule = SIGNAL_MAP[signal]
             suppressed = not window.closed and not rule.fires_during_calibration
