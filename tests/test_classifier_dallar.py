@@ -123,11 +123,17 @@ class TestModulSabitleri:
         assert "circulation" in clf.MAST_FAMILIES["loop"]
 
     def test_class_triggers_anahtar_ve_degerleri(self):
-        """Dal: CLASS_TRIGGERS yalnizca loop+unknown tetikleyiclerini tasiyor (L31)."""
+        """Dal: CLASS_TRIGGERS yalnizca loop+unknown tetikleyiclerini tasiyor (L31).
+        F5 (DUZELTILDI): 'unknown'-degeri-yonca-SIGNAL_MAP-anahtari-olmadi
+        ('new_class_seen' -> evaluate/pipeline-fact'lerde-'error.new_class_seen').
+        Her-deger-artik-gercek-bir-SIGNAL_MAP-keyi."""
+        from swarmax.metrics.apd import SIGNAL_MAP
         assert set(clf.CLASS_TRIGGERS) == {"loop", "unknown"}
-        assert clf.CLASS_TRIGGERS == {"loop": "loop>=2", "unknown": "new_class_seen"}
+        assert clf.CLASS_TRIGGERS == {"loop": "loop>=2", "unknown": "error.new_class_seen"}
         for anahtar in clf.CLASS_TRIGGERS:
             assert anahtar in clf.MAST_FAMILIES
+        for deger in clf.CLASS_TRIGGERS.values():
+            assert deger in SIGNAL_MAP, f"{deger} SIGNAL_MAP-de-yok (capraz-modul-sozlesmesi)"
 
     def test_preseen_classes_mekanik_taban(self):
         """Dal: PRESEEN_CLASSES bilinen mekanik siniflarin tam kumesi (L36)."""

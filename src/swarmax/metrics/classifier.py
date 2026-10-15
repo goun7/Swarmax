@@ -27,8 +27,12 @@ MAST_FAMILIES: dict[str, str] = {
 }
 KNOWN_CLASSES = frozenset(MAST_FAMILIES) - {"unknown"}
 
-# §4.2 triggers keyed by class
-CLASS_TRIGGERS = {"loop": "loop>=2", "unknown": "new_class_seen"}
+# §4.2 triggers keyed by class. F5 (aa23e082-bulgu-5): 'unknown'-degeri-
+# eskiden-'new_class_seen'-idi — ama-SIGNAL_MAP/evaluate/pipeline-fact-
+# anahtarlari-'error.new_class_seen'- seklinde ( capraz-modul-sozlesmesi-
+# kopuk). Bir-tuketici-degeri-kullansa-bilinmeyen-sinyal-ucu-yayardi (
+# F4-silent-drop). Artik-degerler-SIGNAL_MAP-anahtarlariyla-birebir.
+CLASS_TRIGGERS = {"loop": "loop>=2", "unknown": "error.new_class_seen"}
 
 # Classes a production agent is assumed to have produced during onboarding, so only
 # genuinely novel signatures (or the unknown sentinel) trip new_class_seen. Keeps
