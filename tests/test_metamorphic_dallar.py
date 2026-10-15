@@ -108,18 +108,18 @@ def test_record_traffic_negatif_sayaci_azaltir():
     Production'a dokunmuyoruz; sadece davranisi donduruyoruz.
     """
     m = MetamorphicEngine()
-    m.record_traffic(10)
-    m.record_traffic(-5)
-    assert m.agent_day_events == 5
+    with pytest.raises(ValueError, match="non-negative"):
+        m.record_traffic(-5)   # MT-R5A (DUZELTILDI): negatif-olum-RED
 
 
 #------------------------------------------------------- can_shadow_rerun
 
 
-def test_sifir_trafik_golge_izin_verir():
-    """D5: agent_day_events<=0 -> True (hic traffic olculmemis)."""
+def test_sifir_trafik_golge_yok_der():
+    """D5 (DUZELTILDI MT-R5B): agent_day_events<=0 -> False. Olculmemis-gunde
+    R5-butce-payi-kanitlanamaz — fail-open (True) R5-sozlesmesini-atlatirdi."""
     m = MetamorphicEngine()
-    assert m.can_shadow_rerun() is True
+    assert m.can_shadow_rerun() is False
 
 
 def test_tek_event_golge_izin_vermez():
@@ -137,7 +137,7 @@ def test_tam_esik_yuzde_bir_izin_verir():
 
 
 @pytest.mark.parametrize("events,reruns,beklenen", [
-    (0, 0, True),        # events<=0 kolu (L31)
+    (0, 0, False),       # events<=0 (MT-R5B): olculmemis-gun-payi-kanitlanamaz
     (1, 0, False),       # 1/1 = 1.0
     (100, 0, True),      # 1/100 = 0.01 tam esik
     (100, 1, False),     # 2/100 = 0.02
@@ -291,17 +291,17 @@ def test_observe_gomulu_yapi_ihlal():
         "t", {"files": ["b", "a"], "meta": {"k": 2}}) is False
 
 
-def test_observe_referans_takma_alising():
-    """D22 (BULGU): L54 'prior.append(end_state)' referans saklar —
-    caller dict'i observe'dan sonra MUTATE ederse gecmis de degisir ve
-    sonraki kiyas yapilan sonucu degistirir. Guvenli kopya YOK."""
+def test_observe_referans_takma_alising_kopyali():
+    """D22 (DUZELTILDI MT-R5C): 'prior.append(end_state)' eskiden-referans-
+    sakliyordu — caller'in-observe-sonrasi-mutasyonu-gecmisi-retroaktif-
+    degistirip-divergence-sonucunu-sekillendiriyordu. Artik-derin-kopya:
+    mutasyon-gecmise-ulasmaz, {a:1}-kayidi-eski-referansla-esit-kalir."""
     m = MetamorphicEngine()
     d = {"a": 1}
     m.observe_end_state("t", d)
-    d["a"] = 999  # caller gecmise sonradan mudahale
-    # reference artik {a:999} oldugu icin ayni {a:1} kayidi 'farkli' sayilir
-    assert m.observe_end_state("t", {"a": 1}) is True
-    assert m.history["t"][0] == {"a": 999}
+    d["a"] = 999  # caller gecmise sonradan mudahale edemez artik
+    assert m.observe_end_state("t", {"a": 1}) is False
+    assert m.history["t"][0] == {"a": 1}
 
 
 def test_observe_bool_donuyor():

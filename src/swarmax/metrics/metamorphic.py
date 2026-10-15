@@ -9,6 +9,7 @@ reruns; overruns are recorded to the baseline_audit ledger by the caller.
 """
 from __future__ import annotations
 
+import copy
 import json
 from dataclasses import dataclass, field
 
@@ -25,11 +26,20 @@ class MetamorphicEngine:
 
     # -- budget (R5) ---------------------------------------------------------
     def record_traffic(self, events: int = 1) -> None:
+        # MT-R5A (7d2137ea-1): negatif-deger-sayaci-geri-goturup-payi-suni
+        # buyuturdu (R5-butce-disiplini-atlatilabilirdi). Olcum-dogruluk-
+        # sozlesmesi: trafik-olumu-eksidir-donusumlu-degildir.
+        if events < 0:
+            raise ValueError(
+                f"record_traffic: events must be non-negative (got {events})")
         self.agent_day_events += events
 
     def can_shadow_rerun(self) -> bool:
+        # MT-R5B (7d2137ea-1): olculmemis-gunde-butce-payi-KANITLANAMAZ —
+        # 'agent_day_events<=0 -> True' fail-open-idi (R5-sozlesmesiz);
+        # artik-fail-closed. Pay-ancagi-hesaplanmadikca-golge-rerun-YOK.
         if self.agent_day_events <= 0:
-            return True
+            return False
         return (self.shadow_reruns + 1) / self.agent_day_events <= OUTPUT_QUALITY_BUDGET
 
     def note_shadow_rerun(self, task_id: str) -> None:
@@ -51,7 +61,11 @@ class MetamorphicEngine:
         if prior:
             reference = prior[-1]  # compare against the most recent run
             violation = _end_states_diverge(reference, end_state)
-        prior.append(end_state)
+        # MT-R5C (7d2137ea-2): referans-aliasing — cagiranin-sozlugu-mutasyona
+        # ugrarsa-gecmisi-retroaktif-bozuyordu ( divergens-karsilastirmasi-
+        # gecmise-degisir). Dondurulen-objects-derin-kopyadir-artik (JSON-
+        # stabil-pool; metari-degerler-zaten-JSON-stabil).
+        prior.append(copy.deepcopy(end_state))
         return violation
 
 
