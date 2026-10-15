@@ -254,7 +254,7 @@ swarmax-otel-relay --help
 ### Development
 
 ```bash
-python -m pytest tests -q      # 2480 tests (measured 2026-10-14): RFC vectors, alarm injection, sealing, audit trail, fleet status, perf, metrics classifier/loop_breaker
+python -m pytest tests -q      # 2957 tests (measured 2026-10-15): RFC vectors, alarm injection, sealing, audit trail, fleet status, perf, metrics classifier/loop_breaker, semconv registry/validate
 python scripts/smoke_e2e.py    # end-to-end: ingest -> alarms -> seal -> console
 make js-test                   # Node SDK contract tests
 ```
