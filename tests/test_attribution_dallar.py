@@ -1,32 +1,51 @@
 """test_attribution_dallar.py — swarmax/attribution.py dal-kesen test suite.
 
-MODUL ANATOMISI (src/swarmax/attribution.py, 171 satir) — public API:
+MODUL ANATOMISI (src/swarmax/attribution.py) — public API:
   suggest_for_alarm(conn, alarm) -> {suggested_agent_id, suggested_step,
-      confidence, method, note}; deterministik merdiven (L31):
-      1 'loop>=2'                          -> son tool_call izi  (0.90)
+      confidence, method, note}; deterministik merdiven:
+      1 'loop>=2'                          -> 24h icindeki son tool_call (0.90)
       2 'error.new_class_seen'|'error.rate>0.20' -> ilk hata satiri (0.75)
       3 'permission.deny>0.20'             -> en cok reddedilen tool (0.80)
       4 'drift.tool_distribution>0.40'     -> baskin tool pivotu (0.70)
       5 'cost.daily>2x_ewma'               -> en pahali task    (0.65)
-      6 'escalation.age_max>24'            -> en eski acik bilet(0.60)
+      6 'escalation.age_max>24'            -> en eski acik bilet(0.60) [filo-genel]
       7 bilinmeyen sinyal                  -> _fallback         (0.30)
       her rung: iz varsa oneri, iz yoksa _fallback
   confirm_attribution(conn,alarm_id,accepted,operator) -> rowcount 0 -> False;
-      pending guncellenince evidence mohru + True (L142)
+      pending guncellenince evidence mohru + True
   approval_rate(conn) -> {decided, accepted, rejected, rate}; rate None
-      eger decided=0 (L162)
+      eger decided=0
   sabitler: METHOD = 'swarmax.heuristic.v1 (Who&When-aligned, E14/E15)'
 
-BULGU-1 (production'a DOKUNULMADI): 'escalation.age_max>24' rung'u FİLO geneli
-  calisir — sorguda agent_id FİLTRESİ YOK ve suggested_agent_id = BILET'in
-  agent_id'si (alarm'ın agent_id'si DEGIL). Alarm A icin calistirildiginda,
-  en eski acik bilet B'ye aitse oneri B'yi isaret eder. Notu ("oldest open
-  escalation in the fleet') bunu bilincli gosterir; bu onemli bir
-  karakteristik — cagirani suprizleyebilir. Test dosyasinda belgelendi.
+BULGU-1 — GERCEK BUG DEGIL (uretim kodu DEGISMEDI, kanitla kapatildi):
+  'escalation.age_max>24' rung'u FILO geneli calisir — sorguda agent_id
+  FILTRESI YOK ve suggested_agent_id = BILET'in agent_id'si (alarm'in
+  agent_id'si DEGIL). Bu YANLIS BIR ATIF degildir: sinyal "filodaki en eski
+  ACIK bilet 24h'den YASLI" olduguna gore sorumlu biletin SAHIBIDIR; alarm
+  satirindeki agent_id yalnizca raporcudur. Kanitlar:
+    (i) not alani 'oldest open escalation in the fleet' hedefi ACIKCA soyler,
+        oneri 0.60 ile en dusuk ikinci guvende — iddiali degil;
+    (ii) oneri daima operator onayindan gecer (modul docstring: "the suggestion
+        is ALWAYS human-confirmed (autonomous closure is forbidden)"), yani
+        oneri tek basina karar kapatamaz — fail-open degildir;
+    (iii) hitl_escalations/guard_events'te tenant kolonu YOKTUR (migration 006
+        tenant'i yalnizca fleet_agents + alarms'a ekledi) — filo-genel sorgu
+        kiraci siniri ASMAZ, veri sizdirmasi soz konusu degil;
+    (iv) agent_id filtresi eklenseydi bilet baska agent'teyken rung KALICI
+        olarak bos donerdi (0.30 fallback): daha az bilgili bir oneri, yani
+        "duzeltme" gercek hataya yol açardi.
+  Test: test_baskasinin_bileti_isaret_edilir bu davranisi PINLER (yesil).
 
-BULGU-2: 'loop>=2' rung'u 24h penceresini HIC kullanmaz (window_start
-  hesaplanir ama bu rung'da sorguya girmez); 'escalation.age_max>24' da
-  pencere disindadir. Geri kalan 4 rung ts >= window_start ile 24h ile sinirli.
+BULGU-2 — KISMEN DUZELTILDI (SW-A7-BULGU-2, fail-closed): 'loop>=2' rung'u
+  window_start'i HESAPLIYORDU AMA SORGUYA SOKMUYORDU: 365 gunluk bir tool_call
+  0.90 guvenle 'kritik adim' sayiliyordu, oysa ayni rung'un fallback notu "no
+  tool trace in window" diyordu — sorgu ile not BIRBIRIYLE CARPISIYORDU
+  (fail-open + yaniltici kanit). Duzeltme: sorguya "AND ts >= ?" (window_start);
+  artik diger 4 zaman-duyarli rung (error/deny/drift/cost) ile ayni sozlesme.
+  'escalation.age_max>24' rung'unda pencere YOKTUR ve OLMAMALIDIR: sinyal 24h'den
+  BUYUK yasi istiyor; 24h penceresi uygulanirsa rung daima bos donerdi (asiri
+  fail-closed = yeni bug). test_bilet_pencere_disinda_da_kabul bu tasarimi
+  dogru davranis olarak korur.
 
 Kural-1: SADECE yeni test dosyasi. Kural-4: saf in-memory sqlite; ag YOK.
 filterwarnings=error::UserWarning => ureten yol YOK.
@@ -164,13 +183,54 @@ class TestLoopSinyali:
         assert oneri["confidence"] == 0.30
         assert oneri["note"] == "loop breaker fired; no tool trace in window"
 
-    def test_pencere_disi_iz_hala_kullanilir(self, db):
-        """BULGU-2: 'loop>=2' rung'inda 24h penceresi YOK — eski iz de kabul."""
+    def test_pencere_disi_iz_artik_kullanilmiyor(self, db):
+        """BULGU-2 -> SW-A7-BULGU-2 DUZELTILDI: 'loop>=2' rung'i artik
+        ts >= window_start (24h) ile sinirli. 365 gunluk tool_call 0.90
+        guvenle 'kritik adim' sayilamaz; fallback notu ('no tool trace in
+        window') artik gercegi soyluyor — sorgu ile not birbiriyle tutarli."""
         _tool_call(db, "agent-a", "cok-eski-tool",
                    ts=(attribution._utcnow() - timedelta(days=365)).isoformat(sep=" "))
         oneri = attribution.suggest_for_alarm(db, _alarm(db))
+        assert oneri["confidence"] == 0.30
+        assert oneri["suggested_step"] == "insufficient trace"
+        assert oneri["note"] == "loop breaker fired; no tool trace in window"
+        assert "cok-eski-tool" not in oneri["suggested_step"]
+
+    def test_pencere_ici_iz_090(self, db):
+        """Dal (pencerenin asiri-kati olmadiginin kaniti): 6 saat onceki iz
+        hala 0.90 ile secilir — pencere diger runglarla ayni 24h."""
+        _tool_call(db, "agent-a", "taze-tool",
+                   ts=(attribution._utcnow() - timedelta(hours=6)).isoformat(sep=" "))
+        oneri = attribution.suggest_for_alarm(db, _alarm(db))
         assert oneri["confidence"] == 0.90
-        assert "cok-eski-tool" in oneri["suggested_step"]
+        assert "taze-tool" in oneri["suggested_step"]
+        assert oneri["note"] == "3-identical-call loop breaker fired on this tool"
+
+    def test_bayat_ve_taze_birlikte_taze_secilir(self, db):
+        """Dal: bayat iz pencere disinda elenir, pencere-ici iz ORDER BY ts DESC
+        ile secilir (pencere + siralama birlikte calisiyor)."""
+        _tool_call(db, "agent-a", "bayat-tool",
+                   ts=(attribution._utcnow() - timedelta(days=3)).isoformat(sep=" "))
+        _tool_call(db, "agent-a", "taze-tool",
+                   ts=(attribution._utcnow() - timedelta(hours=1)).isoformat(sep=" "))
+        oneri = attribution.suggest_for_alarm(db, _alarm(db))
+        assert oneri["confidence"] == 0.90
+        assert "bayat-tool" not in oneri["suggested_step"]
+
+    def test_pencere_siniri_24h_once_iz_elensin(self, db):
+        """Dal (sinir davranisi): tam 24 saat + 1 dakika onceki iz pencere
+        DISINDADIR -> fallback; 23 saat 59 dakika onceki iz ICERADE -> 0.90."""
+        _tool_call(db, "agent-a", "sinir-disi",
+                   ts=(attribution._utcnow() - timedelta(hours=24, minutes=1)
+                       ).isoformat(sep=" "))
+        oneri = attribution.suggest_for_alarm(db, _alarm(db))
+        assert oneri["confidence"] == 0.30
+        _tool_call(db, "agent-a", "sinir-ici",
+                   ts=(attribution._utcnow() - timedelta(hours=23, minutes=59)
+                       ).isoformat(sep=" "))
+        oneri2 = attribution.suggest_for_alarm(db, _alarm(db, alarm_id="alm-2"))
+        assert oneri2["confidence"] == 0.90
+        assert "sinir-ici" in oneri2["suggested_step"]
 
 
 # ================================== error.new_class_seen / rate>0.20 ========
@@ -363,13 +423,18 @@ class TestYaslanmaSinyali:
         assert "open ticket t-yeni" in oneri["suggested_step"]
 
     def test_baskasinin_bileti_isaret_edilir(self, db):
-        """BULGU-1: sorgu filo-geneldir; alarm agent-a'da olsa en eski acik
-        bilet agent-b'ye aitse oneri agent-b'yi isaret eder."""
+        """BULGU-1 (GERCEK BUG DEGIL — tasarim geregi pin): sorgu filo-geneldir;
+        alarm agent-a'da olsa, en eski ACIK bilet agent-b'ye aitse oneri
+        agent-b'yi isaret eder — sorumlu biletin sahibidir, raporcunun degil.
+        Not 'oldest open escalation in the fleet' hedefi acikca soyler ve
+        oneri operator onayina baglidir (autonomous closure yasak)."""
         _bilet(db, "agent-b", "t-baskasi", gun_once=5)
         oneri = attribution.suggest_for_alarm(
             db, _alarm(db, agent_id="agent-a", signal="escalation.age_max>24"))
         assert oneri["suggested_agent_id"] == "agent-b"
         assert oneri["suggested_agent_id"] != "agent-a"
+        assert "oldest open escalation" in oneri["note"]
+        assert oneri["confidence"] == 0.60   # iddiali olmayan hint seviyesi
 
     def test_acik_bilet_yoksa_fallback(self, db):
         """Dal: acik bilet yok -> fallback."""
@@ -379,12 +444,16 @@ class TestYaslanmaSinyali:
         assert oneri["note"] == "aging alarm; no open ticket found"
 
     def test_bilet_pencere_disinda_da_kabul(self, db):
-        """BULGU-2: bu rung'ta 24h penceresi YOK — 30 gunluk bilet de secilir."""
+        """BULGU-2 KAPSAMI DISI (dogru davranis, bilincli): bu rung'ta 24h
+        penceresi YOKTUR olmamalidir da — sinyal 'yas > 24h' olduguna gore
+        aranan tam olarak BAYAT bilet; pencere uygulansaydi rung daima bos
+        donerdi (asiri fail-closed = yeni bug). 30 gunluk bilet secilir."""
         _bilet(db, "agent-a", "cok-eski-bilet", gun_once=30)
         oneri = attribution.suggest_for_alarm(
             db, _alarm(db, signal="escalation.age_max>24"))
         assert oneri["confidence"] == 0.60
         assert "cok-eski-bilet" in oneri["suggested_step"]
+        assert "720h" in oneri["suggested_step"]   # yaslilik = sinyal konusu
 
 
 # ================================== confirm_attribution ====================

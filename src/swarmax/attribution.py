@@ -39,11 +39,14 @@ def suggest_for_alarm(conn: sqlite3.Connection, alarm: sqlite3.Row) -> dict:
     window_start = (_utcnow() - timedelta(hours=24)).isoformat(sep=" ")
 
     if signal == "loop>=2":
-        # the repeated tool triple IS the critical step
+        # the repeated tool triple IS the critical step; SW-A7-BULGU2: rung
+        # artik 24h penceresine tabi — pencere-disi (bayat) bir tool_call 0.90
+        # guvenle 'kritik adim' sayilamaz; fallback notu zaten 'in window'
+        # diyordu, sorgu pencereyi unutuyordu (fail-open).
         row = conn.execute(
             "SELECT tool_name, arguments_json, ts FROM guard_events"
-            " WHERE agent_id=? AND event_type='tool_call'"
-            " ORDER BY ts DESC LIMIT 1", (agent_id,)).fetchone()
+            " WHERE agent_id=? AND event_type='tool_call' AND ts >= ?"
+            " ORDER BY ts DESC LIMIT 1", (agent_id, window_start)).fetchone()
         if row:
             return {"suggested_agent_id": agent_id,
                     "suggested_step": f"repeated call {row['tool_name']}"
