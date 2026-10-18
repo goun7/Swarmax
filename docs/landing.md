@@ -16,7 +16,7 @@ below maps to a command or a test in the repository.
 > use.
 
 **[ Audit your AI agents → ]** · **[ Read the code → ]** · Apache-2.0 ·
-zero runtime dependencies · 171 tests, all green
+zero runtime dependencies · 3.382 tests, all green
 
 ---
 

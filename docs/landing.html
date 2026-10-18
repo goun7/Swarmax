@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swarmax — Prove what your AI agents did</title>
+<meta name="description" content="The audit and operations layer for AI agent fleets. Sealed evidence, SLA-alarmed triage, AI-Act-ready erasure — one zero-dependency Python service.">
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --line:#30363d; --text:#e6edf3; --muted:#8b949e;
+  --accent:#58a6ff; --green:#3fb950; --red:#f85149; --amber:#d29922;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;line-height:1.6;max-width:880px;margin:0 auto;padding:0 20px 80px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+header{text-align:center;padding:72px 0 40px}
+header img.logo{width:96px;height:96px;border-radius:16px}
+header h1{font-size:clamp(28px,5vw,44px);margin:20px 0 12px;letter-spacing:-0.02em}
+header .sub{color:var(--muted);font-size:18px;max-width:620px;margin:0 auto}
+.badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+.badge{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--muted)}
+.badge b{color:var(--green);font-weight:600}
+nav.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:32px 0 8px}
+.btn{display:inline-block;padding:12px 22px;border-radius:8px;font-weight:600;font-size:15px}
+.btn.primary{background:var(--accent);color:#0d1117}
+.btn.primary:hover{text-decoration:none;background:#79b8ff}
+.btn.ghost{border:1px solid var(--line);color:var(--text);background:var(--panel)}
+.btn.ghost:hover{text-decoration:none;border-color:var(--accent)}
+section{padding:48px 0 8px}
+h2{font-size:26px;letter-spacing:-0.01em;margin-bottom:16px;border-top:1px solid var(--line);padding-top:48px}
+h2:first-of-type{border-top:none;padding-top:0}
+p{margin:10px 0;color:var(--text)}
+.muted{color:var(--muted)}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:18px 0;font-size:14.5px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#1c2129;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:0.04em}
+tr:last-child td{border-bottom:none}
+td.q{color:var(--muted);font-style:italic}
+.yes{color:var(--green);font-weight:600}
+.no{color:var(--red)}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.92em;background:#1c2129;padding:1px 6px;border-radius:4px;border:1px solid var(--line)}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto;margin:16px 0}
+pre code{background:none;border:none;padding:0}
+ol.steps{margin:16px 0 0 20px}
+ol.steps li{margin:14px 0}
+.tier-price{font-weight:700;color:var(--accent)}
+.note{border-left:3px solid var(--amber);background:rgba(210,153,34,0.08);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14.5px}
+blockquote.honest{border-left:3px solid var(--green);background:rgba(63,185,80,0.06);padding:14px 18px;border-radius:0 8px 8px 0;margin:16px 0;color:var(--muted);font-style:italic}
+details{border:1px solid var(--line);background:var(--panel);border-radius:10px;margin:10px 0;padding:0}
+details summary{cursor:pointer;padding:14px 16px;font-weight:600;list-style:none}
+details summary::before{content:"+ ";color:var(--accent)}
+details[open] summary::before{content:"− "}
+details .body{padding:0 16px 16px;color:var(--muted);font-size:14.5px}
+footer{margin-top:64px;padding-top:24px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;text-align:center}
+.hero-term{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:24px 0}
+.hero-term .bar{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.hero-term .dot{width:11px;height:11px;border-radius:50%;background:var(--line)}
+.hero-term pre{margin:0;border:none;background:none;border-radius:0}
+.demo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:18px 0}
+.demo-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.demo-card .t{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
+.demo-card .sev{font-weight:700}
+.sev.Emergency{color:var(--red)}.sev.Critical{color:var(--amber)}.sev.Medium{color:var(--accent)}
+.demo-card .sla{color:var(--muted);font-size:13px}
+@media(max-width:640px){table{font-size:13px}th,td{padding:8px 10px}}
+</style>
+</head>
+<body>
+
+<header>
+  <img class="logo" src="../assets/logo-256.png" alt="Swarmax mark">
+  <h1>Your AI agents are in production.<br>Can you prove what they did?</h1>
+  <p class="sub">Swarmax is the audit and operations layer for AI agent fleets.
+  Sealed evidence, SLA-alarmed triage, and AI-Act-ready erasure — in one
+  zero-dependency Python service that sits beside the framework you already use.</p>
+  <div class="badges">
+    <span class="badge">Apache-2.0</span>
+    <span class="badge">zero runtime dependencies</span>
+    <span class="badge"><b>3.382 tests, all green</b></span>
+    <span class="badge">10M-event scale gate PASS</span>
+  </div>
+  <nav class="cta">
+    <a class="btn primary" href="#quickstart">Audit your AI agents →</a>
+    <a class="btn ghost" href="https://github.com/goun7/Swarmax">Read the code</a>
+  </nav>
+</header>
+
+<div class="hero-term">
+  <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+<pre><code>$ make seed &amp;&amp; make console
+ S1  DETECTED  cost.daily&gt;2x_ewma        sev=Critical   SLA= 24.0h
+ S3  DETECTED  loop&gt;=2                   sev=Emergency  SLA=  0.5h
+ S6  DETECTED  escalation.age_max&gt;24      sev=Emergency  SLA=  2.0h
+ RESULT: 8/8 scenarios detected with correct severity+SLA
+ FP budget: 0.0% escalations on calm traffic (budget ≤5%)</code></pre>
+</div>
+
+<section id="pitch">
+<h2>The 30-second pitch</h2>
+<p>Every team running autonomous agents gets asked the same three questions.
+The framework answers none of them.</p>
+<table>
+<tr><th>The question</th><th>Dashboards</th><th>Swarmax</th></tr>
+<tr><td class="q">Is the fleet working?</td>
+    <td>one trace at a time</td>
+    <td class="yes">fleet-wide drift, loop and error alarms, each with an SLA clock</td></tr>
+<tr><td class="q">What did it cost?</td>
+    <td>one aggregate bill</td>
+    <td class="yes">cost per agent, per task, per tool loop</td></tr>
+<tr><td class="q">Can you prove it?</td>
+    <td>a screenshot (mutable)</td>
+    <td class="yes">an offline-verifiable, timestamped evidence chain</td></tr>
+</table>
+<p class="muted"><b>Positioning.</b> Datadog is how you know your services are
+healthy. Swarmax is how you know your <i>agents</i> are — and how you prove it.
+Frameworks (LangGraph, CrewAI, AutoGen…) build fleets; nobody operates them.
+That gap is the product.</p>
+</section>
+
+<section id="how">
+<h2>How it works — three steps, no rip-and-replace</h2>
+<ol class="steps">
+<li><b>Emit what you already have.</b> If your stack exports OpenTelemetry, point
+it at the signing relay. If you use Langfuse, run the pull bridge. Nothing in
+your app changes.</li>
+<li><b>Watch the fleet.</b> Swarmax ingests, computes per-agent facts and raises
+alarms with deadlines — a runaway tool loop is <span class="sev Emergency">Emergency/30 min</span>,
+an unseen error class is <span class="sev Critical">Critical/24 h</span>.</li>
+<li><b>Prove it.</b> The ledger seals periodically under Ed25519 + Merkle, with
+optional RFC 3161 counter-signatures from an independent timestamp authority.
+Hand the chain to an auditor; it verifies offline.</li>
+</ol>
+</section>
+
+<section id="demo">
+<h2>The 10-second demo</h2>
+<p class="muted">Three cuts, one story: <b>see it → drill in → prove it.</b></p>
+<div class="demo-grid">
+<div class="demo-card"><div class="t">0.0–3.5 s · Terminal → browser</div>
+<b>The SLA queue opens.</b> Open alarms with live countdowns, severities colour-coded.
+<div class="sla">"Every alarm has a deadline. The clock, not a human, decides when it escalates."</div></div>
+<div class="demo-card"><div class="t">3.5–7.0 s · Agent drill-down</div>
+<b>One page per agent.</b> EWMA-Z and tool-mix JSD charts, cost line ticking up.
+<div class="sla">"The fleet's vitals, not one trace."</div></div>
+<div class="demo-card"><div class="t">7.0–10.0 s · Terminal</div>
+<b>Tamper with the ledger → chain breaks.</b> <code>make drill</code> prints
+<span class="no">chain_ok=False</span>.
+<div class="sla">"That is what an auditor buys."</div></div>
+</div>
+<p class="muted">Run it yourself: <code>python demo.py</code> — 8/8 alarm-injection
+scenarios, the false-positive budget, and the MT-4 reliability spot-check, in one command.</p>
+</section>
+
+<section id="pricing">
+<h2>Pricing — open core</h2>
+<p>The free tier is the full monitoring product, not a crippled one. Paid tiers
+sell <b>proof and operations</b>, not features.</p>
+<table>
+<tr><th>Tier</th><th>Price</th><th>Agents</th><th>What you buy</th></tr>
+<tr><td><b>Open Core</b></td><td class="tier-price">$0 forever</td><td>unlimited (self-host)</td>
+    <td>full monitoring, alarms, console, crypto-shredding — Apache-2.0</td></tr>
+<tr><td><b>Pro</b></td><td class="tier-price">$29 / mo</td><td>5</td>
+    <td>sealed evidence + RFC 3161 counter-signatures + weekly report e-mail</td></tr>
+<tr><td><b>Team</b></td><td class="tier-price">$99 / mo</td><td>25</td>
+    <td>OIDC SSO, SLA escalation queue, e-mail reports, priority support</td></tr>
+<tr><td><b>Fleet + Proof</b></td><td class="tier-price">$599 / mo</td><td>50</td>
+    <td>evidence delivery package + auditor portal + independent verification API</td></tr>
+<tr><td><b>Enterprise</b></td><td class="tier-price">from $2,400 / mo</td><td>BYO</td>
+    <td>SAML / SIEM / HA (written only after a paid pilot proves the need)</td></tr>
+</table>
+<p class="muted"><b>Why a $29 entry point.</b> It is cheap enough to expense, and
+it is the first tier where the proof is worth more than the price.</p>
+</section>
+
+<section id="proof">
+<h2>Social proof — the honest version</h2>
+<blockquote class="honest">Swarmax is in dogfood. The measurement protocol
+(MT-1…MT-8) and its results are public in the repository, and the 10M-event
+scale gate ran on real hardware (worst per-agent query 78 ms). No paying
+customers yet — we would rather show you the drill than a logo wall.</blockquote>
+<p class="muted">This section stays exactly this until there are real customers.
+No invented testimonials.</p>
+</section>
+
+<section id="faq">
+<h2>FAQ — what an honest buyer asks</h2>
+<details><summary>Does it run my agents?</summary><div class="body">No. It has no
+LLM client and sits out of the request path. It watches the events your
+framework already emits.</div></details>
+<details><summary>What if I am already on Langfuse / LangSmith / OpenTelemetry?</summary>
+<div class="body">Keep it. Run the Langfuse pull bridge or the OTLP signing relay;
+Swarmax consumes from them and adds the evidence layer on top.</div></details>
+<details><summary>Is the evidence legally meaningful?</summary><div class="body">
+Seals are RFC 8032 Ed25519 over a Merkle root, optionally counter-signed by an
+external RFC 3161 timestamp authority and verifiable with
+<code>openssl ts -verify</code>. That is real cryptographic proof of <i>what was
+recorded and that it has not changed</i> — it is not proof that the record
+reflects reality (garbage in, sealed garbage out). We say it that way.</div></details>
+<details><summary>What does it NOT do?</summary><div class="body">It does not
+score answer quality, replay tasks, act as a model gateway, or run multi-node
+active-active yet. One sealed store per fleet is the honest unit today. Full
+list in the README's "Scope and limits".</div></details>
+<details><summary>How do I leave?</summary><div class="body"><code>make drill</code>
+runs the quarterly exit drill: export → rebuild on a clean store → verify.
+Exit 0 means your evidence leaves with you intact.</div></details>
+</section>
+
+<section id="quickstart">
+<h2>Quickstart</h2>
+<pre><code>git clone https://github.com/goun7/Swarmax.git
+cd Swarmax
+make dev           # install + schema setup
+python demo.py     # synthetic fleet: 8/8 alarms + FP budget + MT-4
+make seed &amp;&amp; make console   # realistic demo fleet → http://127.0.0.1:8080
+                   # demo login: root / swarmax-demo-admin</code></pre>
+<div class="note"><b>Scope note.</b> The console and sealed ledger run locally.
+No data leaves your machine in the open-core tier; the managed tiers seal to
+an independent authority you choose.</div>
+</section>
+
+<footer>
+  Swarmax · Apache-2.0 · zero runtime dependencies ·
+  <a href="https://github.com/goun7/Swarmax">github.com/goun7/Swarmax</a><br>
+  Every claim on this page maps to a command or a test in the repository.
+</footer>
+
+</body>
+</html>

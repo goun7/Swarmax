@@ -28,6 +28,7 @@ preview_console.html
 #  un-include exactly the public pages.)
 docs/**
 !docs/landing.md
+!docs/landing.html
 !docs/arastirma/
 !docs/arastirma/**
 
