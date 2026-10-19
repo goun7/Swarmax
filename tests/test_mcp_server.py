@@ -374,3 +374,20 @@ def test_readme_documents_mcp_distribution_limit():
     assert "mcp/server.py" in readme, "README MCP sunucu-yolunu vermiyor"
     assert "Packaging note (G21)" in readme, (
         "README G21 dagitim-sinirini belirtmiyor ( over-imply-riski)")
+
+
+# ------------------------------------------------------- G22-ascii-saflik
+
+def test_head_commit_message_is_ascii_safe():
+    """G22-pini: commit-mesajlari ASCII-saf olmalidir ( makine-metin-uyari-
+    kurali). Bu oturumda Turkce-karakterler ( c,-) iki-kez mesaja sizdi ve
+    amend ile geri alinmak zorunda kaldi. Pin, HEAD'in mesajini olcer; yeni
+    bir Turkce-karakterli commit mesaji bu testi DUSURUR - sessiz-gecmesin.
+    """
+    import subprocess
+    msg = subprocess.run(
+        ["git", "log", "-1", "--format=%B"], capture_output=True, text=True,
+        cwd=str(ROOT), check=True).stdout
+    non_ascii = [c for c in msg if ord(c) > 127]
+    assert not non_ascii, (
+        "HEAD commit-mesajinda ASCII-disi-karakterler var: %r" % non_ascii)
