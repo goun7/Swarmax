@@ -347,3 +347,30 @@ def test_default_db_used_when_env_and_arg_absent(monkeypatch, tmp_path):
     # P0: salt-oku baglanti — yazma-denemesi RED vermemeli degil, ama sunucu
     # hicbir yazma yapmadigini kanitlamak uzere summary okundu:
     assert res["summary"]["agents"] > 0, res["summary"]
+
+
+# ------------------------------------------------------- G21-dagitim-grayhole
+
+def test_sdist_manifest_includes_mcp_server():
+    """G21-pini: mcp/server.py sdist'in DISINDA birakilirsa pip-ile-gelen
+    kullanicida README'nin sozunu verdigi MCP sunucusu olmaz ( dagitim-
+    grayhole). MANIFEST.in'de acik bir kural olmali — packages.find
+    ( where=["src"]) mcp/'yi zaten goremeyecegi icin bu kural tek sigortadır.
+    """
+    manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
+    assert "mcp" in manifest, "MANIFEST.in mcp/ kurali yok: %r" % manifest
+    assert any(
+        part.strip().startswith(("recursive-include mcp", "include mcp"))
+        for part in manifest.splitlines()), manifest
+    # modulun kendisi de repo-altinda mevcut olmali (VCS-sapmasi yok)
+    assert SERVER.is_file(), SERVER
+
+
+def test_readme_documents_mcp_distribution_limit():
+    """G21-pini: README MCP sunucusunu tanitiyorsa, dagitim-sinirini da
+    soylemelidir — aksi halde wheel'de olmayan bir giris-noktasi oldugu
+    izlenimi olur ( over-imply)."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "mcp/server.py" in readme, "README MCP sunucu-yolunu vermiyor"
+    assert "Packaging note (G21)" in readme, (
+        "README G21 dagitim-sinirini belirtmiyor ( over-imply-riski)")

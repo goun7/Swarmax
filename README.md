@@ -254,7 +254,7 @@ swarmax-otel-relay --help
 ### Development
 
 ```bash
-python -m pytest tests -q      # 3423 tests (measured 2026-10-19): RFC vectors, alarm injection, sealing, audit trail, fleet status, perf, metrics classifier/loop_breaker, semconv registry/validate
+python -m pytest tests -q      # 3425 tests (measured 2026-10-19): RFC vectors, alarm injection, sealing, audit trail, fleet status, perf, metrics classifier/loop_breaker, semconv registry/validate
 python scripts/smoke_e2e.py    # end-to-end: ingest -> alarms -> seal -> console
 make js-test                   # Node SDK contract tests
 ```
@@ -277,6 +277,53 @@ make js-test                   # Node SDK contract tests
 | `dogfood.py` | fleet SDK (`FleetSdk`) + `SwarmaxClient` facade (task / span / guard) |
 | `bridges/langfuse_pull.py` | Langfuse → Swarmax pull bridge: maps GENERATION observations to signed `gen_ai.*` spans (idempotent) |
 | `bridges/otel_relay.py` | signing relay: any framework's unsigned OTLP/HTTP → signed Swarmax ingest (fail-closed 503) |
+
+## MCP server — read-only fleet query core for agents
+
+Three tools over stdio JSON-RPC (protocol `2025-06-18`), pure stdlib, same
+contract as the Tamga/Sester MCP servers: never raises, returns a structured
+GREEN/RED JSON proof instead of a traceback.
+
+| Tool | What it answers |
+|---|---|
+| `fleet_status` | open alarms, breached-SLA count, agent count, 24 h event count |
+| `agent_health` | single-agent state page |
+| `audit_trail` | evidence-ledger chain + seal verification (verifies, never seals) |
+
+The server is **read-only by design**: it never writes, never seals, never
+forwards. `otel_relay` (stateless forwarder) and `seal_ledger` (write path)
+are deliberately absent from it.
+
+```bash
+python3 mcp/server.py                        # stdio JSON-RPC
+SWARMAX_MCP_DB=/path/swarmax.db python3 mcp/server.py
+```
+
+DB resolution order: `db_path` argument → `SWARMAX_MCP_DB` env → repo-local
+`data/swarmax.db` default. Since the default is the **real** store, an MCP
+client should reach for it only for read-only purposes, not to mutate open
+alarms. Point `SWARMAX_MCP_DB` at a copy when in doubt.
+
+Client side:
+
+```json
+{ "command": "python", "args": ["<repo>/mcp/server.py"],
+  "env": { "SWARMAX_MCP_DB": "/path/swarmax.db" } }
+```
+
+Pinned by `tests/test_mcp_server.py` (subprocess-driven, real stdio):
+initialize handshake, tool list, all three tools GREEN on the real DB,
+unknown-tool JSON-RPC `-32601`, missing-DB RED, and the G20 default-DB
+resolution pin (env and argument both absent → repo-local default, not a
+fail-closed RED).
+
+**Packaging note (G21).** `mcp/server.py` ships in the sdist (`MANIFEST.in`)
+but is **not** a Python package inside the wheel — `pip install swarmax`
+gives you the library and the four console scripts, not a runnable MCP
+entry point. Run the server from a source checkout, or copy `mcp/server.py`
+out of the sdist. Making it a `py-modules` entry would collide with the
+`mcp` namespace package used by the MCP SDK, so the single-file module is
+deliberately kept out of `site-packages` naming.
 
 ## Acceptance gates (all enforced in CI or by drills)
 

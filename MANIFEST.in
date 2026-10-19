@@ -4,5 +4,8 @@ include LABELING_TEMPLATES.md
 include AI_ACT_COMPLIANCE.md
 include LICENSE
 include README.md
+# G21-pini: mcp/server.py disarda birakilirsa pip-ile-gelen kullanicida
+# README'nin sozunu verdigi MCP sunucusu yoktur ( dagitim-grayhole).
+recursive-include mcp *.py
 recursive-exclude * __pycache__
 recursive-exclude * *.pyc
