@@ -11,8 +11,8 @@
 </div>
 
 [![CI](https://github.com/goun7/Swarmax/actions/workflows/ci.yml/badge.svg)](https://github.com/goun7/Swarmax/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/swarmax)](https://pypi.org/project/swarmax/)
-[![Python](https://img.shields.io/pypi/pyversions/swarmax)](https://pypi.org/project/swarmax/)
+[![PyPI](https://img.shields.io/pypi/v/swarmax-fleet)](https://pypi.org/project/swarmax-fleet/)
+[![Python](https://img.shields.io/pypi/pyversions/swarmax-fleet)](https://pypi.org/project/swarmax-fleet/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 ---
@@ -184,7 +184,7 @@ the fleet-status invariants in
 ## In 30 seconds
 
 ```bash
-pip install swarmax                       # stdlib-only; no dependency resolution
+pip install swarmax-fleet                 # stdlib-only; no dependency resolution
 swarmax-init                             # create or upgrade the evidence store
 
 python -c "
@@ -206,7 +206,7 @@ offline — a dashboard screenshot is not evidence, this is.
 ## Quickstart
 
 ```bash
-pip install swarmax           # stdlib-only; no dependencies to resolve
+pip install swarmax-fleet     # stdlib-only; no dependencies to resolve
 # or from source:
 git clone https://github.com/goun7/Swarmax.git
 cd Swarmax
@@ -318,7 +318,7 @@ resolution pin (env and argument both absent → repo-local default, not a
 fail-closed RED).
 
 **Packaging note (G21).** `mcp/server.py` ships in the sdist (`MANIFEST.in`)
-but is **not** a Python package inside the wheel — `pip install swarmax`
+but is **not** a Python package inside the wheel — `pip install swarmax-fleet`
 gives you the library and the four console scripts, not a runnable MCP
 entry point. Run the server from a source checkout, or copy `mcp/server.py`
 out of the sdist. Making it a `py-modules` entry would collide with the

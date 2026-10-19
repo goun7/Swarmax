@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "swarmax"
+name = "swarmax-fleet"
 version = "4.3.5"
 description = "Evidence-based operations for AI agent fleets: sealed audit trails, SLA-alarmed triage and AI-Act-ready privacy."
 readme = "README.md"
@@ -29,7 +29,6 @@ classifiers = [
     "Topic :: System :: Monitoring",
     "Topic :: System :: Logging",
     "Topic :: Security",
-    "Topic :: Office/Business :: Financial :: Auditing",
 ]
 dependencies = []  # stdlib-only by design (§7 F0: no external runtime deps)
 
