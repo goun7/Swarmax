@@ -1,0 +1,120 @@
+/* swarmax landing - filo-audit-demo (tamamen statik, disaridan veri CAGRISI YOK) */
+:root{
+  --bg:#0d1117; --panel:#161b22; --panel2:#1c2129; --line:#30363d;
+  --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950;
+  --red:#f85149; --amber:#d29922; --purple:#bc8cff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  line-height:1.6;max-width:920px;margin:0 auto;padding:0 20px 90px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.92em;background:var(--panel2);padding:1px 6px;border-radius:4px;
+  border:1px solid var(--line)}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:16px;overflow-x:auto;margin:16px 0}
+pre code{background:none;border:none;padding:0}
+header{text-align:center;padding:64px 0 36px}
+header h1{font-size:clamp(26px,5vw,42px);margin:18px 0 10px;letter-spacing:-.02em}
+header .sub{color:var(--muted);font-size:17px;max-width:640px;margin:0 auto}
+.badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.badge{border:1px solid var(--line);background:var(--panel);border-radius:999px;
+  padding:4px 12px;font-size:13px;color:var(--muted)}
+.badge b{color:var(--green);font-weight:600}
+section{padding:40px 0 6px}
+h2{font-size:24px;letter-spacing:-.01em;margin-bottom:14px;
+  border-top:1px solid var(--line);padding-top:40px}
+h2:first-of-type{border-top:none;padding-top:0}
+h3{font-size:17px;margin:20px 0 8px}
+p{margin:10px 0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.note{border-left:3px solid var(--amber);background:rgba(210,153,34,.08);
+  padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14.5px}
+.okbox{border-left:3px solid var(--green);background:rgba(63,185,80,.07);
+  padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14.5px}
+.redbox{border-left:3px solid var(--red);background:rgba(248,81,73,.07);
+  padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14.5px}
+/* --- filo-genel-bakis --- */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:12px;margin:18px 0}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:16px;text-align:center}
+.kpi .n{font-size:32px;font-weight:700;letter-spacing:-.02em}
+.kpi .l{color:var(--muted);font-size:13px;margin-top:2px}
+.kpi.red .n{color:var(--red)}
+.kpi.amber .n{color:var(--amber)}
+.kpi.green .n{color:var(--green)}
+.kpi.blue .n{color:var(--accent)}
+.health-bar{display:flex;height:14px;border-radius:7px;overflow:hidden;
+  border:1px solid var(--line);margin:14px 0 6px}
+.health-bar span{display:block;height:100%}
+.health-bar .h-healthy{background:var(--green)}
+.health-bar .h-warn{background:var(--amber)}
+.health-bar .h-unknown{background:var(--purple)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;
+  margin-right:5px;vertical-align:middle}
+/* --- tablolar --- */
+table{width:100%;border-collapse:collapse;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:16px 0;
+  font-size:14px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);
+  vertical-align:top}
+th{background:var(--panel2);color:var(--muted);font-size:12px;
+  text-transform:uppercase;letter-spacing:.04em}
+tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.86em}
+.sev{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;
+  font-weight:600;white-space:nowrap}
+.sev-Emergency{background:rgba(248,81,73,.15);color:var(--red);
+  border:1px solid rgba(248,81,73,.4)}
+.sev-Critical{background:rgba(210,153,34,.13);color:var(--amber);
+  border:1px solid rgba(210,153,34,.4)}
+.sev-Medium{background:rgba(88,166,255,.12);color:var(--accent);
+  border:1px solid rgba(88,166,255,.4)}
+.st{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px}
+.st-healthy{background:rgba(63,185,80,.13);color:var(--green)}
+.st-warn{background:rgba(210,153,34,.13);color:var(--amber)}
+.st-unknown{background:rgba(188,140,255,.12);color:var(--purple)}
+/* --- zaman-cizelgesi --- */
+ol.timeline{list-style:none;margin:18px 0;position:relative;
+  padding-left:26px;border-left:2px solid var(--line)}
+ol.timeline li{margin:0 0 18px;position:relative}
+ol.timeline li::before{content:"";position:absolute;left:-33px;top:5px;
+  width:10px;height:10px;border-radius:50%;background:var(--accent);
+  border:2px solid var(--bg)}
+ol.timeline li.seal::before{background:var(--green)}
+ol.timeline li.red::before{background:var(--red)}
+ol.timeline .t-meta{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12px;color:var(--muted)}
+ol.timeline .t-title{font-weight:600}
+/* --- adimlar --- */
+ol.steps{margin:16px 0 0 20px}
+ol.steps li{margin:14px 0}
+ol.steps li b{color:var(--text)}
+.tool-tag{display:inline-block;background:var(--panel2);border:1px solid var(--line);
+  border-radius:6px;padding:1px 8px;font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:.86em;color:var(--accent)}
+/* --- agent kartlari --- */
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:10px;margin:16px 0}
+.agent-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:12px 14px;font-size:13.5px}
+.agent-card .aid{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600;
+  font-size:14px}
+.agent-card .arow{color:var(--muted);margin-top:3px}
+.noselect{user-select:none}
+.demo-tag{font-size:11px;color:var(--muted);border:1px dashed var(--line);
+  border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:13px;text-align:center}
+@media (max-width:560px){
+  .hide-sm{display:none}
+  table{font-size:13px}
+  th,td{padding:7px 8px}
+}
