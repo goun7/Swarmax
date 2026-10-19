@@ -7,8 +7,10 @@ Tasarım-ilkesi ( tamga/sester MCP sunucuları ile aynı sözleşme):
   • SAF STDLIB — hiçbir pip bağımliliği; sunucu tek-başına çalışır.
   • HİÇBİR ZAMAN exception — her araç JSON kanıtı döndürür; traceback
     DEĞİL "ok:false, reason:…" ( tamga AT-192 message-RED disiplini).
-  • DB-yolu stderr'den-geçmez — SWARMAX_MCP_DB env'inde veya araç
-    argümanında verilir; verilmemişse "bakamadı" değil, fail-closed RED.
+  • DB-yolu: db_path argümanı -> SWARMAX_MCP_DB env'i -> repo-altı
+    data/swarmax.db varsayılanı ( sirayla; sonuncusu mevcut degilse
+    db-acilamadi RED'i). Varsayilan GERCEK-DB oldugu icin MCP-istemcisi
+    open-alarm sayilarini degil, yalnizca salt-oku amaclariyla erisir.
   • SALT-OKUMA — bu sunucu hiçbir şey YAZMAZ. fleet_status/agent_health
     sadece SELECT'ler okur; audit_trail mevcut mühürleri DOĞRULAR, yeni
     mühür ÜRETLMEZ. otel_relay ( stateless-forwarder) ve seal_ledger
