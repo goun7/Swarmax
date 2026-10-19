@@ -254,7 +254,7 @@ swarmax-otel-relay --help
 ### Development
 
 ```bash
-python -m pytest tests -q      # 3396 tests (measured 2026-10-18): RFC vectors, alarm injection, sealing, audit trail, fleet status, perf, metrics classifier/loop_breaker, semconv registry/validate
+python -m pytest tests -q      # 3422 tests (measured 2026-10-19): RFC vectors, alarm injection, sealing, audit trail, fleet status, perf, metrics classifier/loop_breaker, semconv registry/validate
 python scripts/smoke_e2e.py    # end-to-end: ingest -> alarms -> seal -> console
 make js-test                   # Node SDK contract tests
 ```
@@ -345,6 +345,19 @@ Deployment limits that are true today, not on a roadmap slide:
 - `AI_ACT_COMPLIANCE.md` — the compliance dossier the drills exercise
 - `DOGFOOD_PLAN.md` — the MT-1…MT-8 measurement protocol
 - `CHANGELOG.md` · `CONTRIBUTING.md` · `SECURITY.md`
+
+## Landing - "ajanlar calisiyor mu?" (G5, statik filo-audit-demo)
+
+Tek-sayfalik filo-audit-demo: filo-genel-bakis (saglikli/uyari/belirsiz),
+SLA'li acik-alarm kuyrugu, audit-trail zaman-cizelgesi ve MCP
+arac-listesi (fleet_status / agent_health / audit_trail). Tamamen
+statiktir - gomulu demo-veri disinda canli-endpoint/hostname/DB-yolu/anahtar
+ICERMEZ; demo-veri mcp/server.py'nin gercek-DB ciktilarindan alinmistir.
+
+    python3 -m http.server landing/      # statik-dagitim, varsayilan 8000
+
+Testleri: python -m pytest tests/test_landing.py -q (26 test; ASCII,
+statiklik, MCP arac/arguman sozlesmesi, Turkce icerik).
 
 ## License
 
