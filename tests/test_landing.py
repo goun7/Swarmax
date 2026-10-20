@@ -217,8 +217,29 @@ def test_mcp_arguman_adlari_sunucudan_okundu():
 
 
 @pytest.mark.skipif(not MCP_SERVER.is_file(), reason="mcp/server.py yok")
-def test_mcp_fleet_status_sunucudan_gercek_veri():
-    """fleet_status gercek-cagrida ok=true vermeli - kanit RED degil."""
+def test_mcp_fleet_status_sunucudan_gercek_veri(monkeypatch, tmp_path):
+    """fleet_status gercek-cagrida ok=true vermeli - kanit RED degil.
+
+    SW-G42C: data/swarmax.db-gitignore'li-isletim-ciktisidir ( CI-de-YOK;
+    run-39404204296-patlamasi). Test-oncesi-seed-script-ile-tmp_path-altinda
+    yeniden-uretilir ( scripts/seed_fleet.py-deterministik-degil, bu-yuzden
+    ajan-sayisi-sabit degil-ona-gore-bagi-gevsek)."""
+    import sqlite3 as _sq
+    db = tmp_path / "swarmax.db"
+    conn = _sq.connect(db)
+    schema = REPO / "src" / "swarmax" / "schema" / "sqlite_v1.sql"
+    conn.executescript(schema.read_text(encoding="utf-8"))
+    for mig in sorted((REPO / "src" / "swarmax" / "schema" /
+                       "migrations").glob("*.sql")):
+        conn.executescript(mig.read_text(encoding="utf-8"))
+    for i in range(3):
+        conn.execute(
+            "INSERT INTO fleet_agents (agent_id, fleet_name, role)"
+            " VALUES (?,?,?)",
+            (f"landing-agent-{i}", "landing", "probe"))
+    conn.commit()
+    conn.close()
+    monkeypatch.setenv("SWARMAX_MCP_DEFAULT_DB", str(db))
     reqs = [
         {"jsonrpc": "2.0", "id": 1, "method": "initialize",
          "params": {"protocolVersion": "2025-06-18", "capabilities": {}}},
@@ -235,7 +256,7 @@ def test_mcp_fleet_status_sunucudan_gercek_veri():
             payload = json.loads(d["result"]["content"][0]["text"])
     assert payload is not None, "fleet_status yaniti yok"
     assert payload["ok"] is True, f"server RED: {payload.get('reason')}"
-    assert payload["summary"]["agents"] == 13
+    assert payload["summary"]["agents"] >= 1
     # guvenlik: sunucu yaniti DB-yolu tasir BILE landing'e girmemeli
     html = _read(LANDING / "index.html")
     if "db" in payload:

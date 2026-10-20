@@ -321,18 +321,17 @@ def test_env_db_path_used_when_arg_absent(fleet_db, monkeypatch):
 
 # ------------------------------------------------------- G20-varsayilan-DB
 
-def test_default_db_used_when_env_and_arg_absent(monkeypatch, tmp_path):
+def test_default_db_used_when_env_and_arg_absent(monkeypatch, fleet_db):
     """G20-pini: ne env ne argüman verilmemişse repo-altı data/swarmax.db
     varsayılanına düşülür — eski docstring "fail-closed RED" iddiası YANLIŞTI.
 
-    Bu test varsayılanın VAROLDUĞUNU kanıtlar: KYK-dizini ( env'i ve
-    argümanı temizlenmiş) ile çağrılınca db-acilamadi RED'i DEĞİL, mevcut
-    repo-DB'sinden gelen bir okuma döner ( summaryagents>0 veya alarms).
-    Isolasyon: SWARMAX_MCP_DB'i /yol/yok olarak set-etmesek bile sunucu
-    kendisi DEFAULT_DB'ye düşmeli; bu gercek-proje-DB'sine MUDAHALE ETMEZ
-    ( salt-oku mode=ro)."""
+    SW-G42C: data/swarmax.db-gitignore'li-isletim-ciktisidir ( CI-de-YOK;
+    onceki-run-39404204296-patlamasi-bu-yuzden). Test-varsayilan-COZUM-
+    YOLUNU-pinler: DEFAULT_DB-env-override ( SWARMAX_MCP_DEFAULT_DB) ile
+    test-filo-DB'sine-yonlendirilir — gercek-deployunda-davranis-aynidir
+    ( bos-string-falsy-oldugundan-yoksayilir)."""
     monkeypatch.delenv("SWARMAX_MCP_DB", raising=False)
-    monkeypatch.chdir(tmp_path)  # cwd bagimsiz: DEFAULT_DB mutlak-rootlu
+    monkeypatch.setenv("SWARMAX_MCP_DEFAULT_DB", str(fleet_db))
     proc, out = _rpc([_init_line(),
                       _call(3, "fleet_status", {})],
                      env_extra={"SWARMAX_MCP_DB": ""})
@@ -340,7 +339,7 @@ def test_default_db_used_when_env_and_arg_absent(monkeypatch, tmp_path):
     # env-bos-string -> falsy -> DEFAULT_DB yoluna dusmus olmali
     assert res is not None, "cevap-yok (beklenmeyen-kaynak)"
     assert res.get("ok") is True, "varsayilan-DB okunamadi: %r" % (res,)
-    # geri-donen db yolu DEFAULT_DB olmali (mutlak, repo-alti)
+    # geri-donen db yolu DEFAULT_DB olmali (mutlak, patch'lenen-test-filo-DB)
     assert res["db"].endswith("swarmax.db"), res["db"]
     import pathlib
     assert pathlib.Path(res["db"]).is_absolute(), res["db"]

@@ -49,7 +49,13 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-DEFAULT_DB = ROOT / "data" / "swarmax.db"
+# SW-G42C: varsayilan-DB-test-ortamlarinda-yonlendirilebilsin diye env
+# uzerinden-gecersiz-kilinabilir ( CI-de data/swarmax.db-gitignore'li-oldugu
+# icin-YOK; testler-kendi-filo-DB'lerini-buraya-yonlendirir). Bos-string
+# falsy-oldugundan-yoksayilir — gercek-depolyonunda-davranis-aynidir.
+DEFAULT_DB = Path(os.environ.get("SWARMAX_MCP_DEFAULT_DB", "")
+                  ) if os.environ.get("SWARMAX_MCP_DEFAULT_DB") \
+    else ROOT / "data" / "swarmax.db"
 
 
 def _result(req_id, result: dict) -> dict:
