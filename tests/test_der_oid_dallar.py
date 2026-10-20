@@ -178,17 +178,38 @@ def test_non_int_arc():
 
 
 def test_negatif_arc_kucuk():
-    """ORTAM: -1 gibi kucuk-negatif arc calisir (int() kabul eder)."""
-    # -1 & 0x7F = 0x7F; -1 >> 7 = -1 (Python) ama donguye girmez
-    # cunku -1 & 0x7F != 0 donguyi birakir? HAYIR — while arc: -1 truthy!
-    # URETIM-BUG: negatif-arc >= 128 sonsuz-dongu (arc>>=7 hic 0 olmaz)
-    # Bu nedenle bu test sadece ValueError BEKLEMEZ — kucuk negatif
-    # degerler tanimli-davranistir:
+    """SW-TSA-1 pin: negatif arc ValueError-atlar ( sonsuz-dongu-oncesi).
+
+    Onceki-test bu-bug'i-YAZIYOR-ama-positif-arc-siniyordu ( '1.2.5') -
+    yani-hicbir-sey-pinlemiyordu. Simdi-gercek-pin:
+      -1 & 0x7F = 0x7F, -1 >> 7 = -1 ( Python-aritmetigi) - while arc:
+      HIC-BITMEZDI ( uretim-kodu-sonsuz-dongu). Fail-loud-onlemi:
+      DER-kodlanabilir-degil, ValueError.
+    """
+    for neg in (-1, -127, -128, -300, -2**20):
+        with pytest.raises(ValueError, match="negative arc"):
+            _der_oid(f"1.2.{neg}")
+
+
+def test_negatif_arc_sonsuz_dongu_yok():
+    """SW-TSA-1 pin-2: negatif-arc-asla-sonsuz-donguye-GIRMEZ.
+
+    Guard-kaldirilirsa-bu-test-asilmaz: SIGALRM-3sn-ile-sonsuz-donguyu
+    AssertionError'a-cevirir ( zaman-siniri-gibi-calisir).
+    """
+    import signal
+
+    def _alarmCalisti(_sig, _frm):
+        raise AssertionError(
+            "SW-TSA-1 REGRESYON: negatif-arc sonsuz-donguye-girdi")
+    eski = signal.signal(signal.SIGALRM, _alarmCalisti)
+    signal.alarm(3)
     try:
-        out = _der_oid("1.2.5")
-        assert out == b"\x06\x02*\x05"
-    except Exception:
-        pass
+        with pytest.raises(ValueError, match="negative arc"):
+            _der_oid("1.2.-1000000")
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, eski)
 
 
 def test_bosluklu_kabul():

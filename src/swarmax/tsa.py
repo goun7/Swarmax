@@ -52,6 +52,13 @@ def _der_oid(dotted: str) -> bytes:
     parts = [int(p) for p in dotted.split(".")]
     body = bytearray([parts[0] * 40 + parts[1]])
     for arc in parts[2:]:
+        # SW-TSA-1: negatif-arc sonsuz-dongudur ( arc>>=7 negatif-int'i
+        # negatif-tutar, while arc:HIC-BITMEZ). Guvenilmez-OID-serbest
+        # girisi-DDoS-edebilir — DER-kodlanabilir-degildir, fail-loud.
+        if arc < 0:
+            raise ValueError(
+                f"_der_oid: negative arc is not DER-encodable (got {arc});"
+                " arcs must be non-negative integers")
         chunk = bytearray()
         chunk.append(arc & 0x7F)
         arc >>= 7
