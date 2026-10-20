@@ -25,7 +25,21 @@ def _utcnow() -> datetime:
 
 
 def _parse(value: str) -> datetime:
-    return datetime.fromisoformat(str(value))
+    # SW-ISO10: datetime.fromisoformat-py3.10-'Z'-suffix-VE-basic-format
+    # ( '20260101T120000')-DESTEKLEMEZ ( 3.11+-genisletildi). Proje-3.10'
+    # da-calissin-diye-normalize-ediyoruz: 'Z'->'+00:00', basic-format->
+    # extended. Gercek-UTC-zaman-damgalari-OTLP-kaynakli-oldugu-icin-bu
+    # yaygin-bir-girdi ( uretim-hatasi-3.10-target'inda).
+    s = str(value).strip()
+    if s.endswith("Z") or s.endswith("z"):
+        s = s[:-1] + "+00:00"
+    if len(s) == 8 and s.isdigit():
+        s = "%s-%s-%s" % (s[:4], s[4:6], s[6:8])
+    elif (len(s) == 15 and s[8] == "T" and s[:8].isdigit()
+          and s[9:].isdigit()):
+        s = "%s-%s-%sT%s:%s:%s" % (s[:4], s[4:6], s[6:8],
+                                   s[9:11], s[11:13], s[13:15])
+    return datetime.fromisoformat(s)
 
 
 def suggest_for_alarm(conn: sqlite3.Connection, alarm: sqlite3.Row) -> dict:

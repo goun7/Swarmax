@@ -89,6 +89,23 @@ def test_parse_tarih():
     assert _parse("2026-01-01") == _dt.datetime(2026, 1, 1)
 
 
+def test_parse_py310_normalize_sw_iso10():
+    """SW-ISO10 pin: py3.10-fromisoformat 'Z'-ve-basic-format-RED-ederdi.
+
+    Uretim-hatasi: _parse-3.10-target'inda-gercek-OTLP-UTC-zaman-damgalarini
+    ( '...Z')-ve-basic-formatlari-ADMIN-edemezdi ( 3.11+-genisletildi).
+    Normalize-sonrasi-uc-modul-de-ayni-sonucu-vermeli ( attribution,
+    console, pipeline)."""
+    from swarmax import attribution as _attr
+    from swarmax import console as _cons
+    from swarmax import pipeline as _pipe
+    for f in (_attr._parse, _cons._parse, _pipe._parse_ts):
+        assert f("2026-01-01T12:00:00Z") == _dt.datetime(
+            2026, 1, 1, 12, tzinfo=_dt.timezone.utc)
+        assert f("20260101") == _dt.datetime(2026, 1, 1)
+        assert f("20260101T120000") == _dt.datetime(2026, 1, 1, 12, 0, 0)
+
+
 def test_parse_str_cast():
     """ORTAM: str(v) — int/None KABUL edilip stringlesir."""
     assert _parse(20260101) == _dt.datetime(2026, 1, 1)

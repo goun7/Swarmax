@@ -22,10 +22,25 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+def _normalize_iso(s: str) -> str:
+    # SW-ISO10: fromisoformat-py3.10-'Z'-suffix-VE-basic-format-DESTEKLEMEZ
+    # ( 3.11+-genisletildi). 'Z'->'+00:00', basic->extended.
+    s = str(s).strip()
+    if s.endswith("Z") or s.endswith("z"):
+        s = s[:-1] + "+00:00"
+    if len(s) == 8 and s.isdigit():
+        s = "%s-%s-%s" % (s[:4], s[4:6], s[6:8])
+    elif (len(s) == 15 and s[8] == "T" and s[:8].isdigit()
+          and s[9:].isdigit()):
+        s = "%s-%s-%sT%s:%s:%s" % (s[:4], s[4:6], s[6:8],
+                                   s[9:11], s[11:13], s[13:15])
+    return s
+
+
 def _parse_ts(value: object) -> datetime:
     if isinstance(value, datetime):
         return value
-    return datetime.fromisoformat(str(value))
+    return datetime.fromisoformat(_normalize_iso(value))
 
 
 class Pipeline:
