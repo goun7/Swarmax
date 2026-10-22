@@ -95,7 +95,9 @@ class LangfuseBridge:
             ("gen_ai.request.model", model),
             ("gen_ai.usage.input_tokens", int(usage.get("input") or 0)),
             ("gen_ai.usage.output_tokens", int(usage.get("output") or 0)),
-            ("gen_ai.usage.cost", float(cost)),
+            # G51-5: gen_ai.usage.cost upstream kaynaktan kaldirildi- (
+            # 2026-10-23-registry); cost swx.* extension'ina tasinir.
+            ("swx.cost.usd", float(cost)),
             ("swx.agent.id", str(obs.get("name") or "langfuse-gen")),
             ("swx.task.id", f"{obs.get('traceId')}:{obs['id']}"),
             ("swx.agent.version", "langfuse-bridge-1"),

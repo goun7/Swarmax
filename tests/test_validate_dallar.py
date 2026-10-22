@@ -82,24 +82,28 @@ from swarmax.semconv.validate import (  # noqa: E402
 )
 
 # Tip -> gecerli ornek deger katalogu (BULGU-4: [] gecerli str[])
+# G51-5 (2026-10-23): "json" tipi eklendi — guncel upstream registry
+# (79-attribute) gen_ai.input.messages / gen_ai.tool.call.arguments gibi
+# "any" tip attribute'ler tasiyor; bunlar json olarak pinlenir.
 TIPLI_ORNEK: dict[str, object] = {
     "str": "openai",
     "str[]": ["stop1", "stop2"],
     "int": 42,
     "double": 0.7,
     "bool": True,
+    "json": {"role": "user", "content": "merhaba"},
 }
 
 # validate.py L17 — tip-denetimsiz gecen onek listesi
 _ALLOWED = ("error.", "otel.", "service.", "deployment.", "k8s.", "host.", "telemetry.")
 
 _GENAI_INT_KEYS = ["gen_ai.request.max_tokens", "gen_ai.request.seed",
-                   "gen_ai.request.choice_count", "gen_ai.usage.input_tokens",
+                   "gen_ai.request.choice.count", "gen_ai.usage.input_tokens",
                    "gen_ai.usage.output_tokens"]
 _GENAI_DOUBLE_KEYS = ["gen_ai.request.temperature", "gen_ai.request.top_p",
                       "gen_ai.request.frequency_penalty",
-                      "gen_ai.request.presence_penalty", "gen_ai.usage.cost"]
-_GENAI_STR_KEYS = ["gen_ai.system", "gen_ai.operation.name", "gen_ai.request.model",
+                      "gen_ai.request.presence_penalty"]
+_GENAI_STR_KEYS = ["gen_ai.provider.name", "gen_ai.operation.name", "gen_ai.request.model",
                    "gen_ai.conversation.id", "gen_ai.tool.name"]
 _GENAI_STRARR_KEYS = ["gen_ai.request.stop_sequences", "gen_ai.response.finish_reasons"]
 
@@ -341,7 +345,7 @@ class TestValidateSwxDallari:
     def test_genai_swx_karisik_gecerli(self):
         """Basari dal: gen_ai ve swx key'leri ayni dict'te beraber gecer."""
         rapor = validate_attributes({
-            "gen_ai.system": "openai", "swx.fleet.name": "fleet-1",
+            "gen_ai.provider.name": "openai", "swx.fleet.name": "fleet-1",
         })
         assert rapor.ok is True
         assert rapor.checked == 2
@@ -375,8 +379,13 @@ class TestValidateAllowedPrefixDallari:
     def test_error_type_pinli_ama_denetimsiz(self):
         """BULGU-1 DAL-KESEN KESIF: "error.type" GENAI_ATTRIBUTES'te "str"
         olarak PINLI fakat validator "error." onekinden continue ile gecer
-        — 123 (int) bile gecer. Registry-virtual dalga (DOKUNULMADI)."""
-        assert GENAI_ATTRIBUTES["error.type"] == "str"
+        — 123 (int) bile gecer. Registry-virtual dalga (DOKUNULMADI).
+
+        G51-5 (2026-10-23): guncel upstream registry "error.type"i gen_ai.*
+        tablosundan cikardi; validator hala "error." onekinden continue
+        eder, bu yuzden davranis degismedi (basari-virtual-dalga) — sadece
+        kaynaktaki yeri degisti.
+        """
         rapor = validate_attributes({"error.type": 123})
         assert rapor.ok is True
         assert rapor.type_mismatches == {}
@@ -463,22 +472,26 @@ class TestValidateBilinmeyenVeBirlesik:
         assert rapor.type_mismatches == {}
 
     def test_sade_tip_uyumsuz_ok_false(self):
-        """Dal: yalnizca tip-uyumsuz varsa ok=False (fail-closed)."""
-        rapor = validate_attributes({"gen_ai.system": 42})
+        """Dal: yalnizca tip-uyumsuz varsa ok=False (fail-closed).
+
+        G51-5: gen_ai.system kaldirildi; tip-uyumsuzluk icin registry'de
+        olan bir key kullaniriz.
+        """
+        rapor = validate_attributes({"gen_ai.provider.name": 42})
         assert rapor.ok is False
         assert rapor.unknown == []
 
     def test_coklu_tip_uyumsuzlari_hepsi_raporlanir(self):
         """Dal: birden fazla uyumsuz key ayri ayri raporlanir."""
         rapor = validate_attributes({
-            "gen_ai.system": 5,
             "gen_ai.request.max_tokens": "cok",
             "gen_ai.request.temperature": 1,
+            "gen_ai.response.model": 7,
         })
         assert len(rapor.type_mismatches) == 3
-        assert rapor.type_mismatches["gen_ai.system"] == ("str", "int")
         assert rapor.type_mismatches["gen_ai.request.max_tokens"] == ("int", "str")
         assert rapor.type_mismatches["gen_ai.request.temperature"] == ("double", "int")
+        assert rapor.type_mismatches["gen_ai.response.model"] == ("str", "int")
 
     def test_uyumlu_uzun_dict_hepsi_sayilir(self):
         """Sinir dal: tum pinli Kayitlar + izinli onekler bir arada —
@@ -493,7 +506,7 @@ class TestValidateBilinmeyenVeBirlesik:
     def test_genai_arti_service_birlesik_gecerli(self):
         """Basari dal: gen_ai key + allowed prefix key birlikte gecer."""
         rapor = validate_attributes({
-            "gen_ai.system": "openai", "service.name": "swarmax"})
+            "gen_ai.provider.name": "openai", "service.name": "swarmax"})
         assert rapor.ok is True
         assert rapor.checked == 2
 
@@ -509,23 +522,29 @@ class TestValidateBilinmeyenVeBirlesik:
         uyar (ok=False checked=2 unknown=1 type_mismatches=1)."""
         rapor = validate_attributes({
             "foo.bar": 1, "gen_ai.system": 5})
-        assert rapor.summary() == "ok=False checked=2 unknown=1 type_mismatches=1"
+        assert rapor.summary() == "ok=False checked=2 unknown=2 type_mismatches=0"
 
     def test_genai_swx_arti_unknown_karisik_tam(self):
         """Dal: gen_ai (gecerli+uyumsuz) + swx (gecerli) + unknown karisik —
-        dallarin hepsi tek raporda olculur."""
+        dallarin hepsi tek raporda olculur.
+
+        G51-5 (2026-10-23): gen_ai.system ve gen_ai.usage.cost upstream
+        registry'den KALDIRILDI — artik unknown'a dusuyorlar. Tip-uyumsuzluk
+        icin hala registry'de olan bir key kullaniriz.
+        """
         rapor = validate_attributes({
             "gen_ai.system": "openai",
-            "gen_ai.usage.cost": 1,        # double<-int -> mismatch
+            "gen_ai.usage.cost": 1,        # kaldirildi -> unknown
+            "gen_ai.request.temperature": " sicak",  # double<-str -> mismatch
             "swx.fleet.name": "fleet-1",
             "swx.ttft.s": 0.5,
             "bilinmeyen.key": 3,
             "error.type": "timeout",
         })
         assert rapor.ok is False
-        assert rapor.checked == 6
-        assert rapor.unknown == ["bilinmeyen.key"]
-        assert rapor.type_mismatches == {"gen_ai.usage.cost": ("double", "int")}
+        assert rapor.checked == 7
+        assert rapor.unknown == ["gen_ai.system", "gen_ai.usage.cost", "bilinmeyen.key"]
+        assert rapor.type_mismatches == {"gen_ai.request.temperature": ("double", "str")}
 
 
 # ====================================================== SemconvReport ======
@@ -617,7 +636,7 @@ class TestValidateEnstrumansal:
 
     def test_deterministik_ayni_girdi_ayni_rapor(self):
         """Dal: ayni girdi iki cagri AYNI raporu verir (saf-fonksiyon)."""
-        attrs = {"gen_ai.system": "x", "foo": 1}
+        attrs = {"gen_ai.provider.name": "x", "foo": 1}
         r1 = validate_attributes(attrs)
         r2 = validate_attributes(attrs)
         assert r1.ok == r2.ok
@@ -637,8 +656,8 @@ class TestValidateEnstrumansal:
     def test_nested_olmayan_deger_ipuclari(self):
         """Sinir dal: dict degeri "json" tipine duser — validator nested
         objeleri str ile karistirmaz."""
-        rapor = validate_attributes({"gen_ai.system": {"nested": 1}})
-        assert rapor.type_mismatches["gen_ai.system"] == ("str", "json")
+        rapor = validate_attributes({"gen_ai.provider.name": {"nested": 1}})
+        assert rapor.type_mismatches["gen_ai.provider.name"] == ("str", "json")
 
 
 def rapors_unknown(rapor: SemconvReport) -> list[str]:

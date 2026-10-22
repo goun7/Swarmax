@@ -258,7 +258,11 @@ def _span_to_event(agent_id: str | None, span: dict, sattrs: dict,
                           or sattrs.get("gen_ai.response.model") or "unknown"),
         "input_tokens": int(sattrs.get("gen_ai.usage.input_tokens") or 0),
         "output_tokens": int(sattrs.get("gen_ai.usage.output_tokens") or 0),
-        "cost_usd": float(sattrs.get("gen_ai.usage.cost") or 0.0),
+        # G51-5: gen_ai.usage.cost upstream kaynaktan kaldirildi- ( 2026-10-23
+        # registry); cost swx.* extension alanina tasindi. Eski-kopru- (
+        # langfuse/otel-relay) uyumu icin her iki anahtar okunur.
+        "cost_usd": float(sattrs.get("swx.cost.usd")
+                          or sattrs.get("gen_ai.usage.cost") or 0.0),
         "latency_ms": latency_ms,
         "error_class": str(error_class) if error_class else None,
         "status": "error" if status_code == 2 else "ok",

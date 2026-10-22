@@ -3,15 +3,17 @@ from swarmax.semconv import validate_attributes
 
 
 def test_valid_genai_and_swx_pass():
+    # G51-5 (2026-10-23): gen_ai.system/gen_ai.usage.cost upstream registry'den
+    # kaldirildi — bunun yerine gen_ai.provider.name ve swx.cost.usd kullaniriz.
     report = validate_attributes({
         "gen_ai.request.model": "gpt-4o-mini",
         "gen_ai.usage.input_tokens": 900,
-        "gen_ai.usage.cost": 0.0012,
         "gen_ai.response.finish_reasons": ["stop"],
-        "gen_ai.system": "openai",
+        "gen_ai.provider.name": "openai",
         "swx.agent.role": "worker",
         "swx.synthetic": True,
         "swx.retry.count": 1,
+        "swx.cost.usd": 0.0012,
         "error.type": "timeout",
         "service.name": "fleetmind",
     })

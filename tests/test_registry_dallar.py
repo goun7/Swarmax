@@ -71,8 +71,10 @@ from swarmax.semconv.registry import (  # noqa: E402
 
 # Pinli tip sozlugu (registry.py L17 yorumunda belgelendi) — BULGU-4:
 # "bool" sozlukte tanimli ANCAK pinli GENAI_ATTRIBUTES'te HIC kullanilmaz.
-TIPLER = ("str", "str[]", "int", "double", "bool")
-KULLANILAN_TIPLER = ("str", "str[]", "int", "double")  # gercek pinli dagilim
+# G51-5 (2026-10-23): "json" tipi eklendi — guncel upstream registry
+# "any" tip attribute'ler tasiyor (gen_ai.input.messages, ...).
+TIPLER = ("str", "str[]", "int", "double", "bool", "json")
+KULLANILAN_TIPLER = ("str", "str[]", "int", "double", "bool", "json")  # gercek pinli dagilim
 
 # Katalog: her tip icin ornek deger — basari dallari icin
 TIPLI_ORNEK: dict[str, object] = {
@@ -114,8 +116,14 @@ class TestPinnedSemconv:
         assert "open-telemetry/semantic-conventions-genai" in PINNED_SEMCONV
 
     def test_okuma_tarihi(self):
-        """Dal: pin okuma tarihini icerir (snapshot hangi gun)."""
-        assert "2025-09-14" in PINNED_SEMCONV
+        """Dal: pin okuma tarihini icerir (snapshot hangi gun).
+
+        G51-5 (2026-10-23): pin 2026-10-23 tarihli guncel registry'e
+        tazelendi (79-attribute; 2025-09-14 snapshot'indan kaldirilan
+        gen_ai.system/gen_ai.prompt/gen_ai.completion/gen_ai.usage.cost
+        cikarildi).
+        """
+        assert "2026-10-23" in PINNED_SEMCONV
 
     def test_status_development(self):
         """Dal: pin status kelimesini istir — pinlemenin nedeni (R9)."""
@@ -173,26 +181,35 @@ class TestGenaiAttributesYapi:
         kullananlar = [k for k, v in GENAI_ATTRIBUTES.items() if v == tip]
         assert len(kullananlar) >= 1, f"tip {tip!r} icin kayit yok"
 
-    def test_bool_tipi_sozlukte_fakat_kullanilmiyor(self):
-        """BULGU-4 basarisiz dal: "bool" registry.py L17 tip sozlugunde
-        tanimli ANCAK pinli GENAI_ATTRIBUTES'te HIC kullanilmamistir.
-        Sozluk-genisligi gercek kullanimi asar (production DOKUNULMADI)."""
-        bool_kullanan = [k for k, v in GENAI_ATTRIBUTES.items() if v == "bool"]
-        assert bool_kullanan == []
-        # teyit: tip seti icinde tanimli, kullanilan set disinda
+    def test_bool_tipi_sozlukte_ve_kullaniliyor(self):
+        """BULGU-4 olcum dal: "bool" registry tip sozlugunde tanimli VE
+        guncel registry'de kullaniliyor (G51-5: gen_ai.conversation.compacted,
+        gen_ai.request.stream).
+        Onceki (2025) snapshot'ta HIC kullanilmamisti; guncel registry'de
+        gercek kullanim var — sozluk-genisligi artik kullanimi asmiyor."""
+        bool_kullanan = sorted(k for k, v in GENAI_ATTRIBUTES.items() if v == "bool")
+        assert bool_kullanan == ["gen_ai.conversation.compacted", "gen_ai.request.stream"]
+        # teyit: tip seti icinde tanimli VE kullanilan set icinde
         assert "bool" in TIPLER
-        assert "bool" not in KULLANILAN_TIPLER
+        assert "bool" in KULLANILAN_TIPLER
 
     def test_tip_dagilimi_gercegi(self):
-        """BULGU-4 olcum dal: pinli dagilim str=20/int=5/double=5/str[]=2."""
+        """BULGU-4 olcum dal: pinli dagilim guncel-registry olcumu.
+
+        G51-5 (2026-10-23): 79-attribute'luk guncel registry'de "any"
+        tipler (input.messages, tool.call.arguments, ...) json'a
+        eslenir; olculen dagilim:
+          str=39, int=21, double=6, bool=2, str[]=3, json=8
+        """
         from collections import Counter
 
         dagilim = Counter(GENAI_ATTRIBUTES.values())
-        assert dict(dagilim) == {"str": 20, "int": 5, "double": 5, "str[]": 2}
+        assert dict(dagilim) == {"str": 39, "int": 21, "double": 6,
+                                 "bool": 2, "str[]": 3, "json": 8}
 
     def test_tip_degerleri_disinda_yok(self):
-        """Basari dal: HIÇ bir value {"str","str[]","int","double","bool"}
-        disinda deger ALMAZ — bu yapi invariant'i (mutasyona karsi olculdu)."""
+        """Basari dal: HIÇ bir value TIPLER disinda deger ALMAZ — bu yapi
+        invariant'i (mutasyona karsi olculdu). G51-5: "json" eklendi."""
         assert set(GENAI_ATTRIBUTES.values()) <= set(TIPLER)
 
     def test_plain_dict_koruma_yok(self):
@@ -204,7 +221,7 @@ class TestGenaiAttributesYapi:
         assert not isinstance(GENAI_ATTRIBUTES, MappingProxyType)
 
     @pytest.mark.parametrize("key", [
-        "gen_ai.system",
+        "gen_ai.provider.name",
         "gen_ai.operation.name",
         "gen_ai.request.model",
         "gen_ai.request.max_tokens",
@@ -213,18 +230,29 @@ class TestGenaiAttributesYapi:
         "gen_ai.usage.output_tokens",
         "gen_ai.tool.name",
         "gen_ai.conversation.id",
-        "error.type",
     ])
     def test_pinli_key_mevcut(self, key):
-        """Basari dal: bilinen pinli key'ler kayitta mevcut (regresyon)."""
+        """Basari dal: bilinen pinli key'ler kayitta mevcut (regresyon).
+
+        G51-5 (2026-10-23): "gen_ai.system" ve "error.type" kaldirildi-
+        ( upstream-registry); artık parametre listesinde degiller.
+        """
         assert key in GENAI_ATTRIBUTES
 
-    @pytest.mark.parametrize("key", ["gen_ai.prompt", "gen_ai.completion"])
-    def test_deprecated_key_pinli(self, key):
-        """Dal: deprecated event-tercihli key'ler pinli tutulmus
-        (kayit defteri comment L39-40 ile belgelendirildi)."""
-        assert key in GENAI_ATTRIBUTES
-        assert GENAI_ATTRIBUTES[key] == "str"
+    @pytest.mark.parametrize("key", ["gen_ai.system", "gen_ai.prompt",
+                                     "gen_ai.completion", "gen_ai.usage.cost",
+                                     "error.type"])
+    def test_kaldirilan_key_artik_pinli_degil(self, key):
+        """G51-5 dal: upstream-registry'den KALDIRILAN key'ler pinli
+        degildir (2025-09-14 snapshot'inda vardilar; 2026-10-23'te yoklar).
+
+        - gen_ai.system     -> yerine gen_ai.provider.name
+        - gen_ai.prompt     -> tamamen kaldirildi (events tercih edilir)
+        - gen_ai.completion -> tamamen kaldirildi
+        - gen_ai.usage.cost -> tamamen kaldirildi (swx.cost.usd extension)
+        - error.type        -> "error." onekinden devam ediyor (tablo disi)
+        """
+        assert key not in GENAI_ATTRIBUTES
 
     @pytest.mark.parametrize("tip, beklenen_key", [
         ("str[]", "gen_ai.request.stop_sequences"),
@@ -242,12 +270,15 @@ class TestGenaiAttributesYapi:
     def test_key_gen_ai_on_eki_veya_error(self, key):
         """Basari dal: her key "gen_ai." ile baslar VEYA tek "error.type"
         istisnasidir (BULGU-1 — genai_keys bu istisnayi yansitir)."""
-        assert key.startswith("gen_ai.") or key == "error.type"
+        # G51-5: error.type kayitta yok; hepsi gen_ai.* oldu
+        assert key.startswith("gen_ai.")
 
-    def test_gen_ai_disi_key_sayisi_bir(self):
-        """BULGU-1 dal: "gen_ai." disi TEK key "error.type" — istisna sayisi."""
+    def test_gen_ai_disi_key_yok(self):
+        """BULGU-1 dal: "gen_ai." disi key YOK — G51-5 (2026-10-23) ile
+        "error.type" upstream tablosundan cikarildi; hepsi "gen_ai.*"
+        (error.* oneki validator'dan takip edilir, kayitta degil)."""
         disinda = [k for k in GENAI_ATTRIBUTES if not k.startswith("gen_ai.")]
-        assert disinda == ["error.type"]
+        assert disinda == []
 
 
 class TestGenaiAttributesInvariant:
@@ -342,28 +373,37 @@ class TestGenaiKeys:
         """Dal: cikti kumesi kayit defteri kumesine esit (eksik/fazla yok)."""
         assert set(genai_keys()) == set(GENAI_ATTRIBUTES)
 
-    def test_error_type_icerir(self):
-        """BULGU-1 dal: genai_keys "error.type" dondurur — "gen_ai.*" listesi
-        degildir (production'a DOKUNMADAN belgelendi)."""
-        assert "error.type" in genai_keys()
+    def test_error_type_icermez(self):
+        """BULGU-1 dal (G51-5 tazelendi): genai_keys "error.type" DONDURMEZ
+        — upstream registry "error.type"i gen_ai.* tablosundan cikardi.
+        Artik tam bir "gen_ai.*" listesi (error.* validator onekinden)."""
+        assert "error.type" not in genai_keys()
 
     @pytest.mark.parametrize("event_adi", [
         "gen_ai.client.inference.operation.details",
         "gen_ai.client.token.usage",
         "gen_ai.agent.definitions",
-        "gen_ai.tool.definitions",
     ])
     def test_event_adlari_disarida(self, event_adi):
         """BULGU-2 dal: _EVENT_NAMES adlari genai_keys ciktisinda YOK —
-        attribute/event ayirimi bilinclidir."""
+        attribute/event ayirimi bilinclidir.
+
+        G51-5 (2026-10-23): "gen_ai.tool.definitions" guncel registry'de
+        bir ATTRIBUTE olarak da tanimli (any tip); bu yuzden parametre
+        listesinden cikarildi.
+        """
         assert event_adi not in genai_keys()
 
     def test_event_names_demeti_kullanilmaz(self):
-        """BULGU-2 dal: registry._EVENT_NAMES demeti gercekten 4 event
-        icerir ve bunlardan HICBIRI attribute kayit defterinde degildir."""
+        """BULGU-2 dal: registry._EVENT_NAMES demeti gercekten 2 event
+        icerir ve bunlardan HICBIRI attribute kayit defterinde degildir.
+
+        G51-5 (2026-10-23): agent/tool.definitions guncel registry'de
+        ayni anda attribute oldugundan event listesinden cikarildi (2'ye
+        dustu; onceki snapshot 4 'event' tasimisti)."""
         for event_adi in registry._EVENT_NAMES:
             assert event_adi not in GENAI_ATTRIBUTES
-        assert len(registry._EVENT_NAMES) == 4
+        assert len(registry._EVENT_NAMES) == 2
 
 
 class TestGenaiKeysMonkeypatch:

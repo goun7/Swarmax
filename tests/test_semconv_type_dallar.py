@@ -58,7 +58,7 @@ def test_expected_type_returns_str_or_none(key):
 
 
 @pytest.mark.parametrize("key", ["gen_ai", "swx", "foo.bar", "", "GEN_AI.SYSTEM",
-                                 "gen_ai.system ", " gen_ai.system", "unknown.attr"])
+                                 "gen_ai.provider.name ", " gen_ai.provider.name", "unknown.attr"])
 def test_expected_type_unknown_keys_return_none(key):
     assert _expected_type(key) is None
 
@@ -71,13 +71,16 @@ def test_expected_type_none_key_returns_none():
 def test_expected_type_case_sensitive():
     assert _expected_type("GEN_AI.SYSTEM") is None
     assert _expected_type("gen_ai.SYSTEM") is None
-    assert _expected_type("gen_ai.system") == GENAI_ATTRIBUTES["gen_ai.system"]
+    # G51-5: gen_ai.system kaldirildi; gecerli bir key ile olculur
+    assert _expected_type("gen_ai.provider.name") == GENAI_ATTRIBUTES["gen_ai.provider.name"]
 
 
 def test_expected_type_prefix_does_not_match():
     assert _expected_type("gen_ai.") is None
     assert _expected_type("swx.") is None
     assert _expected_type("gen_ai.system.request") is None
+    # G51-5: gen_ai.system upstream'den KALDIRILDI -> None (unknown)
+    assert _expected_type("gen_ai.system") is None
 
 
 def test_expected_type_no_registry_overlap():
@@ -89,7 +92,7 @@ def test_expected_type_registries_nonempty():
     assert len(SWX_ATTRIBUTES) > 10
 
 
-@pytest.mark.parametrize("key", ["gen_ai.system", "swx.fleet.name"])
+@pytest.mark.parametrize("key", ["gen_ai.provider.name", "swx.fleet.name"])
 def test_expected_type_known_values(key):
     expected = {**SWX_ATTRIBUTES, **GENAI_ATTRIBUTES}[key]
     assert _expected_type(key) == expected
@@ -194,8 +197,9 @@ def test_actual_type_never_returns_none(value):
 
 def test_actual_type_expected_matches_for_valid_attributes():
     # registry'deki tipler Python degerleriyle uyumlu
+    # G51-5 (2026-10-23): "json" tipi eklendi (upstream "any" attribute'ler)
     compat = {"str": "x", "int": 1, "double": 1.0, "bool": True,
-              "str[]": ["a"]}
+              "str[]": ["a"], "json": {"role": "user"}}
     for key, typ in [*GENAI_ATTRIBUTES.items(), *SWX_ATTRIBUTES.items()]:
         if typ in compat:
             assert _actual_type(compat[typ]) == typ, (key, typ)
@@ -203,4 +207,5 @@ def test_actual_type_expected_matches_for_valid_attributes():
 
 def test_actual_type_registry_type_coverage():
     types = set(GENAI_ATTRIBUTES.values()) | set(SWX_ATTRIBUTES.values())
-    assert types <= {"str", "int", "double", "bool", "str[]"}
+    # G51-5 (2026-10-23): "json" eklendi (any-tip attribute'ler)
+    assert types <= {"str", "int", "double", "bool", "str[]", "json"}

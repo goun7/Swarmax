@@ -19,6 +19,8 @@ SWX_ATTRIBUTES: dict[str, str] = {
     "swx.retry.count": "int",
     "swx.ttft.s": "double",
     "swx.budget.usd": "double",
+    "swx.cost.usd": "double",           # G51-5: gen_ai.usage.cost kaynaktan kaldirildi, cost burada
+    "swx.usage.cost": "double",         # G51-5: langfuse totalCost esleri (ornek: dollar)
     "swx.permission.decision": "str",   # allow|deny
     "swx.mask.count": "int",
     "swx.loop.hash": "str",             # §3.2-3 loop-breaker signature

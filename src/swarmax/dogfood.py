@@ -92,7 +92,7 @@ class FleetSdk:
             self._kv("gen_ai.request.model", model),
             self._kv("gen_ai.usage.input_tokens", tokens_in),
             self._kv("gen_ai.usage.output_tokens", tokens_out),
-            self._kv("gen_ai.usage.cost", cost_usd),
+            self._kv("swx.cost.usd", cost_usd),
             self._kv("swx.agent.id", agent_id),
             self._kv("swx.task.id", task_id),
             self._kv("swx.agent.version", "dogfood-sdk-1"),
